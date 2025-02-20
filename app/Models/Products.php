@@ -18,7 +18,10 @@ class Products extends Model
     {
         return $this->hasMany(ProductVariants::class, 'ProductID')->with('images');
     }
-    
+    public function specifications()
+    {
+        return $this->hasOne(ProductSpecification::class, 'productId');
+    }
     public $timestamps = true; 
 
     const CREATED_AT = 'createdAt'; 

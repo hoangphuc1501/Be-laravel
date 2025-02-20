@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductSpecificationController;
 use App\Http\Controllers\UserController;
 
 /*
@@ -29,17 +30,26 @@ Route::prefix('productcategories')->group(function () {
     Route::patch('softDelete/{id}', [ProductCategoryController::class, 'softDelete']); 
     Route::patch('restore/{id}', [ProductCategoryController::class, 'restore']); 
 });
-// api danh sản phẩm
+
+// api sản phẩm
 Route::apiResource('products', ProductController::class);
-// Route::prefix('newsCategories')->group(function () {
-//     Route::patch('softDelete/{id}', [NewsCategoryController::class, 'softDelete']); 
-//     Route::patch('restore/{id}', [NewsCategoryController::class, 'restore']); 
-// });
+Route::prefix('products')->group(function () {
+    Route::patch('softDelete/{id}', [ProductController::class, 'softDelete']); 
+    Route::patch('restore/{id}', [ProductController::class, 'restore']); 
+});
+
 // api thương hiệu
 Route::apiResource('brands', BrandController::class);
 Route::prefix('brands')->group(function () {
     Route::patch('/softDelete/{id}', [BrandController::class, 'softDelete']);
     Route::patch('/restore/{id}', [BrandController::class, 'restore']);
+});
+
+// api thông số kỹ  thuật
+Route::apiResource('productspecifications', ProductSpecificationController::class);
+Route::prefix('productspecifications')->group(function () {
+    Route::patch('/softDelete/{id}', [ProductSpecificationController::class, 'softDelete']);
+    Route::patch('/restore/{id}', [ProductSpecificationController::class, 'restore']);
 });
 
 // api users
