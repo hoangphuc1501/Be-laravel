@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductSpecificationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CommentAndRatingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,3 +79,17 @@ Route::put('news/{id}/restore', [NewsCategoryController::class, 'restoreNews']);
 Route::post('news', [NewsCategoryController::class, 'store']);
 Route::put('news/{id}', [NewsCategoryController::class, 'update']);
 Route::apiResource('newsCategories', NewsCategoryController::class);
+
+//comments và Ratings
+
+Route::prefix('products/{productId}')->group(function () {
+    Route::post('comments', [CommentAndRatingController::class, 'comments']);
+    Route::get('comments', [CommentAndRatingController::class, 'getComments']);
+    Route::post('comments/{commentId}/hide', [CommentAndRatingController::class, 'hideComments']);
+    Route::post('comments/{commentId}/unhide', [CommentAndRatingController::class, 'unhideComments']);
+    
+    Route::post('ratings', [CommentAndRatingController::class, 'ratings']);
+    Route::get('ratings', [CommentAndRatingController::class, 'getRatings']);
+    Route::post('ratings/{ratingId}/hide', [CommentAndRatingController::class, 'hideRatings']);
+    Route::post('ratings/{ratingId}/unhide', [CommentAndRatingController::class, 'UnhideRatings']);
+});
