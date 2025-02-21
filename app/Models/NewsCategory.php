@@ -30,4 +30,25 @@ class NewsCategory extends Model
     const CREATED_AT = 'createdAt'; 
     const UPDATED_AT = 'updatedAt'; 
     const DELETED_AT = 'deletedAt';
+    
+     public function news()
+     {
+         return $this->hasMany(news::class,'newsCategory');
+     }
+
+     public function scopeNotDeleted($query)
+     {
+         return $query->where('deleted', 0);
+     }
+
+     public function scopeOnlyDeleted($query)
+     {
+         return $query->where('deleted', 1);
+     }
+
+     public function restoreCategory()
+     {
+         $this->deleted = 0;
+         $this->save();
+     }
 }
