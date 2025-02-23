@@ -205,4 +205,28 @@ public function restore(string $id)
         'message' => 'Khôi phục danh mục thành công.',
     ], 200);
 }
+
+public function ListCategory(Request $request)
+{
+    $categoriesList = ProductCategory::select('id', 'name')
+        ->where('deleted', 0)
+        ->where('status', 1)
+        ->orderBy('position', 'asc')
+        ->get();
+
+    if ($categoriesList->isEmpty()) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Không có danh mục nào.',
+            'data' => []
+        ], 404);
+    }
+
+    return response()->json([
+        'code' => 'success',
+        'message' => 'Danh sách danh mục sản phẩm.',
+        'data' => $categoriesList
+    ], 200);
+}
+
 }
