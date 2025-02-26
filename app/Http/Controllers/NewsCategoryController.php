@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\News;
-use App\Models\NewsCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Models\NewsCategory;
 
 class NewsCategoryController extends Controller
 {
@@ -24,35 +23,122 @@ class NewsCategoryController extends Controller
         // ->get(); 
         return response()->json([
             'code' => 'success',
-            'message' => 'Danh sách danh mục sản phẩm.',
+            'message' => 'Danh sách danh mục tin tức.',
             'data' => $categoriesNews
         ], 200);
     }
-    public function getNewsByCategory($categoryId)
+    
+
+    public function store(Request $request)
     {
-        $category = NewsCategory::find($categoryId);
-        if (!$category || $category->deleted == 1) {
-            return response()->json(['message' => 'Danh mục không tồn tại hoặc đã bị ẩn'], 404);
+
+        // Kiểm tra dữ liệu hợp lệ trước khi lưu
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'image' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'required|boolean',
+            'parentID' => 'nullable|exists:newscategories,id', // Đảm bảo parentID tồn tại
+            'position' => 'nullable|integer',
+        ]);
+        // tự động tăng cho possiton
+        $maxPosition =  NewsCategory::max('position') ?? 0;
+        $newPosition = $maxPosition + 1;
+
+        // Tạo slug
+        // $slug = generateUniqueSlug($request->name);
+        $slug = generateUniqueSlug($request->name,  NewsCategory::class);
+        // Tạo danh mục mới
+        $category =  NewsCategory::create([
+            'name' => $request->name,
+            'image' => $request->image,
+            'description' => $request->description,
+            'status' => $request->status,
+            'parentID' => $request->parentID, // Nếu NULL thì là danh mục cha
+            'position' => $request->position ?? $newPosition,
+            'slug' => $slug,
+            'deleted' => 0
+        ]);
+
+        // Trả về dữ liệu có quan hệ cha - con
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Thêm danh mục thành công.',
+            'data' => $category->load('parent', 'children') // Load quan hệ để xem danh mục cha - con
+        ], 201);
+    }
+    public function show(string $id)
+    {
+        $category = NewsCategory::find($id);
+        if (!$category) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Danh mục không tồn tại.'
+            ], 404);
         }
-
-        $news = $category->news()->where('deleted', 0)->get();
-
-        if ($news->isEmpty()) {
-            return response()->json(['message' => 'Không có tin tức trong danh mục này hoặc tất cả đã bị ẩn'], 404);
-        }
-
-        return response()->json($news);
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Hiển thị danh mục theo id thành công.',
+            'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'slug', 'deleted', 'position'])
+        ], 200);
+    }
+    public function update(Request $request, string $id)
+    {
+    $category = NewsCategory::find($id);
+    if (!$category) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Danh mục không tồn tại.'
+        ], 404);
     }
 
-    // Lấy tất cả tin tức
-    public function getAllNews()
-    {
-        $news = News::notDeleted()->get();
-        return response()->json($news);
+    $validatedData = $request->validate([
+        'name' => 'required|string|max:255',
+        'image' => 'nullable|string|max:255',
+        'description' => 'nullable|string',
+        'status' => 'required|boolean',
+        'parentID' => 'nullable|exists:newscategories,id',
+        'position' => 'nullable|integer',
+    ]);
+
+    // Kiểm tra nếu tên thay đổi thì tạo slug mới
+    // $slug = $category->name !== $validatedData['name'] 
+    //     ? generateUniqueSlug($validatedData['name']) 
+    //     : $category->slug;
+
+    $position = $request->has('position') ? $request->position : $category->position;
+    $slug = $category->name !== $validatedData['name'] 
+    ? generateUniqueSlug($validatedData['name'], NewsCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
+    : $category->slug;
+
+     // Cập nhật parentID, có thể null
+    $parentID = $request->has('parentID') ? $request->input('parentID') : $category->parentID;
+
+    $category->fill([
+        'name' => $validatedData['name'],
+        'image' => $validatedData['image'] ?? $category->image,
+        'description' => $validatedData['description'] ?? $category->description,
+        'status' => $validatedData['status'],
+        'parentID' => $parentID,
+        'position' => $position,
+        'slug' => $slug,
+    ]);
+
+    // Kiểm tra nếu dữ liệu thay đổi mới update
+    if ($category->isDirty()) {
+        $category->save();
     }
+
+    return response()->json([
+        'code' => 'success',
+        'message' => 'Cập nhật danh mục thành công.',
+        'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug'])
+    ], 200);
+    }
+    
 
     // Ẩn danh mục và các tin tức liên quan
-    public function deleteCategory($id)
+    public function softDelete($id)
     {
         $category = NewsCategory::find($id);
         if (!$category) {
@@ -69,113 +155,14 @@ class NewsCategoryController extends Controller
         return response()->json(['message' => 'Danh mục đã bị ẩn và các bài viết liên quan cũng đã bị ẩn']);
     }
 
-    // Ẩn tin tức
-    public function deleteNews($id)
-    {
-        $news = News::find($id);
-        if (!$news) {
-            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
-        }
-
-        // Đánh dấu bài viết là bị ẩn (deleted = 1)
-        $news->deleted = 1;
-        $news->save();
-
-        return response()->json(['message' => 'Bài viết đã bị ẩn']);
-    }
-
     // Phục hồi danh mục và các tin tức liên quan
-    public function restoreCategory($newsCategory)
+    public function restore($newsCategory)
     {
         $category = NewsCategory::find($newsCategory);
-        $category->restoreCategory();
+        $category->restore();
 
         $category->news()->where('deleted', 1)->update(['deleted' => 0]);
 
         return response()->json(['message' => 'Danh mục và các bài viết liên quan đã được phục hồi']);
-    }
-
-    // Phục hồi tin tức
-    public function restoreNews($id)
-    {
-        $news = News::find($id);
-        if (!$news) {
-            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
-        }
-
-        // Phục hồi tin tức
-        $news->restoreNews();
-
-        return response()->json(['message' => 'Bài viết đã được phục hồi']);
-    }
-    public function store(Request $request)
-    {
-        // Kiểm tra và xác thực dữ liệu đầu vào
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'image' => 'nullable|string',
-            'slug' => 'required|string|unique:news',
-            'author' => 'required|string|max:255',
-            'position' => 'nullable|integer',
-            'deleted' => 'nullable|integer',
-            'newsCategory' => 'required|exists:newscategories,id',
-            'status' => 'required|boolean',
-            'featured' => 'required|boolean',
-        ]);
-
-        // Tạo tin tức mới
-        $news = News::create([
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'image' => $validated['image'],
-            'slug' => Str::slug($validated['slug']),
-            'author' => $validated['author'],
-            'position' => $validated['position'] ?? 0,
-            'deleted' => $validated['deleted'] ?? 0,
-            'newsCategory' => $validated['newsCategory'],
-            'status' => $validated['status'],
-            'featured' => $validated['featured'],
-        ]);
-
-        return response()->json(['message' => 'Tin tức đã được thêm thành công', 'data' => $news], 201);
-    }
-    public function update(Request $request, $id)
-    {
-        // Tìm tin tức theo id
-        $news = News::find($id);
-        if (!$news) {
-            return response()->json(['message' => 'Tin tức không tồn tại'], 404);
-        }
-
-        // Kiểm tra và xác thực dữ liệu đầu vào
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'image' => 'nullable|string',
-            'slug' => 'required|string|unique:news,slug,' . $news->id,
-            'author' => 'required|string|max:255',
-            'position' => 'nullable|integer',
-            'deleted' => 'nullable|integer',
-            'newsCategory' => 'required|exists:newscategories,id',
-            'status' => 'required|boolean',
-            'featured' => 'required|boolean',
-        ]);
-
-        // Cập nhật thông tin tin tức
-        $news->update([
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'image' => $validated['image'],
-            'slug' => Str::slug($validated['slug']),
-            'author' => $validated['author'],
-            'position' => $validated['position'] ?? 0,
-            'deleted' => $validated['deleted'] ?? 0,
-            'newsCategory' => $validated['newsCategory'],
-            'status' => $validated['status'],
-            'featured' => $validated['featured'],
-        ]);
-
-        return response()->json(['message' => 'Tin tức đã được cập nhật thành công', 'data' => $news]);
     }
 }

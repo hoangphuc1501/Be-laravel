@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class NewsCategory extends Model
 {
@@ -46,7 +47,7 @@ class NewsCategory extends Model
          return $query->where('deleted', 1);
      }
 
-     public function restoreCategory()
+     public function restore()
      {
          $this->deleted = 0;
          $this->save();

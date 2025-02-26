@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductSpecificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CommentAndRatingController;
+use App\Http\Controllers\NewsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,20 +66,18 @@ Route::prefix('users')->group(function () {
 
 
 // api danh mục tin tức
-
+Route::apiResource('newsCategories', NewsCategoryController::class);
 Route::prefix('newsCategories')->group(function () {
     Route::patch('softDelete/{id}', [NewsCategoryController::class, 'softDelete']); 
     Route::patch('restore/{id}', [NewsCategoryController::class, 'restore']); 
 });
-Route::get('news/category/{newsCategory}', [NewsCategoryController::class, 'getNewsByCategory']); // lấy tin tức theo danh mục
-Route::get('news', [NewsCategoryController::class, 'getAllNews']); // lấy tất cả tin tức
-Route::put('category/{id}/delete', [NewsCategoryController::class, 'deleteCategory']); // xóa mềm danh mục và các bài viết liên quan
-Route::put('news/{id}/delete', [NewsCategoryController::class, 'deleteNews']); // xóa mềm tin tức
-Route::put('category/{id}/restore', [NewsCategoryController::class, 'restoreCategory']); // phục hồi danh mục và các bài viết liên quan
-Route::put('news/{id}/restore', [NewsCategoryController::class, 'restoreNews']); // phục hồi tin tức
-Route::post('news', [NewsCategoryController::class, 'store']);
-Route::put('news/{id}', [NewsCategoryController::class, 'update']);
-Route::apiResource('newsCategories', NewsCategoryController::class);
+
+//api tin tức
+Route::apiResource('news', NewsController::class);
+Route::prefix('news')->group(function () {
+    Route::patch('softDelete/{id}', [NewsController::class, 'softDelete']); 
+    Route::patch('restore/{id}', [NewsController::class, 'restore']); 
+});
 
 //comments và Ratings
 
