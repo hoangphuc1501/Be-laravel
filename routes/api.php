@@ -76,3 +76,7 @@ Route::prefix('newsCategories')->group(function () {
     Route::patch('softDelete/{id}', [NewsCategoryController::class, 'softDelete']); 
     Route::patch('restore/{id}', [NewsCategoryController::class, 'restore']); 
 });
+
+
+// phân quyền
+Route::patch('restore/{id}', [ProductCategoryController::class, 'restore']);

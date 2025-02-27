@@ -12,7 +12,7 @@ class ProductController extends Controller
 {
     public function index()
 {
-    $products = Products::select('id', 'title', 'codeProduct', 'brandID', 'categoriesID', 'slug', 'position', 'description', 'featured', 'descriptionPromotion')
+    $products = Products::select('id', 'title', 'codeProduct', 'brandID', 'categoriesID', 'slug', 'position', 'description', 'featured', 'descriptionPromotion', 'status')
     ->where('deleted', false)
         ->with([
             'variants' => function ($query) {
@@ -127,9 +127,15 @@ class ProductController extends Controller
     // chi tiết sản phẩm
     public function show(string $id)
 {
-    $product = Products::with('variants.images')
-    ->where('deleted', false)
-    ->find($id);
+    // $product = Products::with('variants.images')
+    // ->where('deleted', false)
+    // ->find($id);
+
+    $product = Products::with([
+        'variants' => function ($query) {
+            $query->where('deleted', false)->with('images');
+        }
+    ])->where('deleted', false)->find($id);
 
     if (!$product) {
         return response()->json([
@@ -165,8 +171,7 @@ class ProductController extends Controller
     }
 
     // Tìm sản phẩm cần cập nhật
-    $product = Products::find($id)
-    ->where('deleted', false);
+    $product = Products::find($id);
     if (!$product) {
         return response()->json([
             'code' => 'error',
