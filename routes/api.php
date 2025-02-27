@@ -34,6 +34,7 @@ Route::prefix('productcategories')->group(function () {
     Route::patch('softDelete/{id}', [ProductCategoryController::class, 'softDelete']); 
     Route::patch('restore/{id}', [ProductCategoryController::class, 'restore']); 
 });
+Route::get('ListCategory', [ProductCategoryController::class, 'ListCategory']);
 
 // api sản phẩm
 Route::apiResource('products', ProductController::class);
@@ -55,6 +56,7 @@ Route::prefix('brands')->group(function () {
     Route::patch('/softDelete/{id}', [BrandController::class, 'softDelete']);
     Route::patch('/restore/{id}', [BrandController::class, 'restore']);
 });
+Route::get('ListBrands', [BrandController::class, 'ListBrands']);
 
 // api thông số kỹ  thuật
 Route::apiResource('productspecifications', ProductSpecificationController::class);
