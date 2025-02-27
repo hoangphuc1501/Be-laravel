@@ -9,6 +9,8 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductSpecificationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CommentAndRatingController;
+use App\Http\Controllers\NewsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +76,27 @@ Route::apiResource('newsCategories', NewsCategoryController::class);
 Route::prefix('newsCategories')->group(function () {
     Route::patch('softDelete/{id}', [NewsCategoryController::class, 'softDelete']); 
     Route::patch('restore/{id}', [NewsCategoryController::class, 'restore']); 
+});
+
+//api tin tức
+Route::apiResource('news', NewsController::class);
+Route::prefix('news')->group(function () {
+    Route::patch('softDelete/{id}', [NewsController::class, 'softDelete']); 
+    Route::patch('restore/{id}', [NewsController::class, 'restore']); 
+});
+
+//comments và Ratings
+
+Route::prefix('products/{productId}')->group(function () {
+    Route::post('comments', [CommentAndRatingController::class, 'comments']);
+    Route::get('comments', [CommentAndRatingController::class, 'getComments']);
+    Route::post('comments/{commentId}/hide', [CommentAndRatingController::class, 'hideComments']);
+    Route::post('comments/{commentId}/unhide', [CommentAndRatingController::class, 'unhideComments']);
+    
+    Route::post('ratings', [CommentAndRatingController::class, 'ratings']);
+    Route::get('ratings', [CommentAndRatingController::class, 'getRatings']);
+    Route::post('ratings/{ratingId}/hide', [CommentAndRatingController::class, 'hideRatings']);
+    Route::post('ratings/{ratingId}/unhide', [CommentAndRatingController::class, 'UnhideRatings']);
 });
 
 
