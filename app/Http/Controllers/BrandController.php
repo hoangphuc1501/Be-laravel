@@ -199,27 +199,4 @@ class BrandController extends Controller
             'message' => 'Khôi phục thương hiệu thành công.',
         ], 200);
     }
-
-    public function ListBrands(Request $request)
-    {
-        $BrandList = Brands::select('id', 'name')
-            ->where('deleted', 0)
-            ->where('status', 1)
-            ->orderBy('position', 'asc')
-            ->get();
-    
-        if ($BrandList->isEmpty()) {
-            return response()->json([
-                'code' => 'error',
-                'message' => 'Không có thương hiệu nào.',
-                'data' => []
-            ], 404);
-        }
-    
-        return response()->json([
-            'code' => 'success',
-            'message' => 'Danh sách thương hiệu sản phẩm.',
-            'data' => $BrandList
-        ], 200);
-    }
 }
