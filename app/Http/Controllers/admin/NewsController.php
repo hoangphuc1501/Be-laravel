@@ -5,7 +5,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\News;
 use App\Models\NewsCategory;
+<<<<<<< HEAD:app/Http/Controllers/admin/NewsController.php
 use App\Http\Controllers\Controller;
+=======
+use Illuminate\Support\Facades\Log;
+
+>>>>>>> cd34bb2f470c0271b19be4ad3e101cf04e333419:app/Http/Controllers/NewsController.php
 class NewsController extends Controller
 {
     public function show($categoryId)
@@ -43,13 +48,12 @@ class NewsController extends Controller
         ], 200);
     }
     public function store(Request $request)
-    {
+{
         // Kiểm tra và xác thực dữ liệu đầu vào
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'image' => 'nullable|string',
-            'slug' => 'required|string|unique:news',
             'author' => 'required|string|max:255',
             'position' => 'nullable|integer',
             'deleted' => 'nullable|integer',
@@ -57,17 +61,20 @@ class NewsController extends Controller
             'status' => 'required|boolean',
             'featured' => 'required|boolean',
         ]);
+        $maxPosition =  News::max('position') ?? 0;
+        $newPosition = $maxPosition + 1;
+        $slug = generateUniqueSlug($request->title,News::class);
 
         // Tạo tin tức mới
         $news = News::create([
             'title' => $validated['title'],
             'content' => $validated['content'],
-            'image' => $validated['image'],
-            'slug' => Str::slug($validated['slug']),
+            'image' => $validated['image'] ?? null,
+            'slug' => $slug,
             'author' => $validated['author'],
-            'position' => $validated['position'] ?? 0,
+            'position' => $request->position ?? $newPosition,
             'deleted' => $validated['deleted'] ?? 0,
-            'newsCategory' => $validated['newsCategory'],
+            'newsCategory' => $validated['newsCategory'] ?? 0,
             'status' => $validated['status'],
             'featured' => $validated['featured'],
         ]);
@@ -87,7 +94,6 @@ class NewsController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'image' => 'nullable|string',
-            'slug' => 'required|string|unique:news,slug,' . $news->id,
             'author' => 'required|string|max:255',
             'position' => 'nullable|integer',
             'deleted' => 'nullable|integer',
@@ -95,17 +101,20 @@ class NewsController extends Controller
             'status' => 'required|boolean',
             'featured' => 'required|boolean',
         ]);
-
+        $position = $request->has('position') ? $request->position : $news->position;
+    $slug = $news->title !== $validated['title'] 
+    ? generateUniqueSlug($validated['title'], News::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
+    : $news->slug;
         // Cập nhật thông tin tin tức
         $news->update([
             'title' => $validated['title'],
             'content' => $validated['content'],
             'image' => $validated['image'],
-            'slug' => Str::slug($validated['slug']),
+            'slug' => $slug,
             'author' => $validated['author'],
             'position' => $validated['position'] ?? 0,
             'deleted' => $validated['deleted'] ?? 0,
-            'newsCategory' => $validated['newsCategory'],
+            'newsCategory' => $validated['newsCategory'] ?? 0,
             'status' => $validated['status'],
             'featured' => $validated['featured'],
         ]);

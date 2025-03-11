@@ -5,7 +5,12 @@ namespace App\Http\Controllers\admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\NewsCategory;
+<<<<<<< HEAD:app/Http/Controllers/admin/NewsCategoryController.php
 use App\Http\Controllers\Controller;
+=======
+use Illuminate\Support\Facades\Log;
+
+>>>>>>> cd34bb2f470c0271b19be4ad3e101cf04e333419:app/Http/Controllers/NewsCategoryController.php
 class NewsCategoryController extends Controller
 {
     public function index(Request $request)
@@ -30,41 +35,41 @@ class NewsCategoryController extends Controller
     
 
     public function store(Request $request)
-    {
-
+{
         // Kiểm tra dữ liệu hợp lệ trước khi lưu
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'image' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|boolean',
-            'parentID' => 'nullable|exists:newscategories,id', // Đảm bảo parentID tồn tại
+            'parentID' => 'nullable|exists:newscategories,id',
             'position' => 'nullable|integer',
         ]);
-        // tự động tăng cho possiton
-        $maxPosition =  NewsCategory::max('position') ?? 0;
+
+        // Tự động tăng cho position
+        $maxPosition = NewsCategory::max('position') ?? 0;
         $newPosition = $maxPosition + 1;
 
         // Tạo slug
-        // $slug = generateUniqueSlug($request->name);
-        $slug = generateUniqueSlug($request->name,  NewsCategory::class);
+        $slug = generateUniqueSlug($validated['name'], NewsCategory::class);
+
         // Tạo danh mục mới
-        $category =  NewsCategory::create([
-            'name' => $request->name,
-            'image' => $request->image,
-            'description' => $request->description,
-            'status' => $request->status,
-            'parentID' => $request->parentID, // Nếu NULL thì là danh mục cha
-            'position' => $request->position ?? $newPosition,
+        $category = NewsCategory::create([
+            'name' => $validated['name'],
+            'image' => $validated['image'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'status' => $validated['status'],
+            'parentID' => $validated['parentID'] ?? null,
+            'position' => $validated['position'] ?? $newPosition,
             'slug' => $slug,
             'deleted' => 0
         ]);
 
-        // Trả về dữ liệu có quan hệ cha - con
+
         return response()->json([
             'code' => 'success',
             'message' => 'Thêm danh mục thành công.',
-            'data' => $category->load('parent', 'children') // Load quan hệ để xem danh mục cha - con
+            'data' => $category->load('parent', 'children')
         ], 201);
     }
     public function show(string $id)
@@ -82,58 +87,39 @@ class NewsCategoryController extends Controller
             'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'slug', 'deleted', 'position'])
         ], 200);
     }
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-    $category = NewsCategory::find($id);
-    if (!$category) {
-        return response()->json([
-            'code' => 'error',
-            'message' => 'Danh mục không tồn tại.'
-        ], 404);
-    }
+        // Tìm tin tức theo id
+        $category = NewsCategory::find($id);
+        if (!$category) {
+            return response()->json(['message' => 'Tin tức không tồn tại'], 404);
+        }
 
-    $validatedData = $request->validate([
-        'name' => 'required|string|max:255',
-        'image' => 'nullable|string|max:255',
-        'description' => 'nullable|string',
-        'status' => 'required|boolean',
-        'parentID' => 'nullable|exists:newscategories,id',
-        'position' => 'nullable|integer',
-    ]);
-
-    // Kiểm tra nếu tên thay đổi thì tạo slug mới
-    // $slug = $category->name !== $validatedData['name'] 
-    //     ? generateUniqueSlug($validatedData['name']) 
-    //     : $category->slug;
-
-    $position = $request->has('position') ? $request->position : $category->position;
-    $slug = $category->name !== $validatedData['name'] 
-    ? generateUniqueSlug($validatedData['name'], NewsCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
+        // Kiểm tra và xác thực dữ liệu đầu vào
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|string',
+            'position' => 'nullable|integer',
+            'ParentID' => 'nullable|exists:newscategories,id',
+            'status' => 'required|boolean',
+        ]);
+        $position = $request->has('position') ? $request->position : $category->position;
+    $slug = $category->title !== $validated['name'] 
+    ? generateUniqueSlug($validated['name'], NewsCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
     : $category->slug;
+        // Cập nhật thông tin tin tức
+        $category->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'image' => $validated['image'] ?? ($category->image ?? ''),
+            'parentID' => $validated['parentID'] ?? 0,
+            'slug' => $slug,
+            'position' => $validated['position'] ?? 0,
+            'status' => $validated['status'],
+        ]);
 
-     // Cập nhật parentID, có thể null
-    $parentID = $request->has('parentID') ? $request->input('parentID') : $category->parentID;
-
-    $category->fill([
-        'name' => $validatedData['name'],
-        'image' => $validatedData['image'] ?? $category->image,
-        'description' => $validatedData['description'] ?? $category->description,
-        'status' => $validatedData['status'],
-        'parentID' => $parentID,
-        'position' => $position,
-        'slug' => $slug,
-    ]);
-
-    // Kiểm tra nếu dữ liệu thay đổi mới update
-    if ($category->isDirty()) {
-        $category->save();
-    }
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Cập nhật danh mục thành công.',
-        'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug'])
-    ], 200);
+        return response()->json(['message' => 'Tin tức đã được cập nhật thành công', 'data' => $category]);
     }
     
 

@@ -9,18 +9,9 @@ use Illuminate\Support\Str;
 class news extends Model
 {
     protected $table = 'news';
-    use HasFactory;
     protected $fillable = [
-        'title', 
-        'content', 
-        'image', 
-        'slug', 
-        'author', 
-        'position', 
-        'newsCategory', 
-        'status', 
-        'featured', 
-        'deleted'
+        'title', 'content', 'image', 'slug', 'author',
+        'position', 'deleted', 'newsCategory', 'status', 'featured'
     ];
 
     public function category()
