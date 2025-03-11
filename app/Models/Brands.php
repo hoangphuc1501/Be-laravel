@@ -13,7 +13,10 @@ class Brands extends Model
         'name', 'image', 'description', 'status', 'position', 'deleted', 'slug'
     ];
 
-
+    public function products()
+    {
+        return $this->hasMany(Products::class, 'brandID');
+    }
     public $timestamps = true; 
 
     const CREATED_AT = 'createdAt'; 

@@ -40,6 +40,15 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'api' => [
+            'driver' => 'jwt',
+            'provider' => 'users',  // Guard mặc định cho model User
+        ],
+        'client_api' => [  // Guard mới cho UserClient
+            'driver' => 'jwt',
+            'provider' => 'user_clients',
+        ],
     ],
 
     /*
@@ -64,6 +73,10 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
+        'user_clients' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\UserClient::class, // Thêm model UserClient
+        ]
 
         // 'users' => [
         //     'driver' => 'database',

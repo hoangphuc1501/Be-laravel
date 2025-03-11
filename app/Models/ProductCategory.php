@@ -21,10 +21,15 @@ class ProductCategory extends Model
 
     // Lấy danh mục con
     public function children()
-    {
-        return $this->hasMany(ProductCategory::class, 'parentID');
-    }
+{
+    return $this->hasMany(ProductCategory::class, 'parentID')->where('deleted', false)->where('status', 1);
+}
 
+    
+    public function products()
+    {
+        return $this->hasMany(Products::class, 'categoriesID');
+    }
     public $timestamps = true; 
 
     const CREATED_AT = 'createdAt'; 

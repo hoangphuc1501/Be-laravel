@@ -33,5 +33,9 @@ return [
     'cloudinary' => [
         'cloud_url' => env('CLOUDINARY_URL', ''),
     ],
+    'vnpay' => [
+        'tmn_code' => env('VNPAY_TMNCODE'),
+        'hash_secret' => env('VNPAY_HASH_SECRET'),
+    ],
 
 ];

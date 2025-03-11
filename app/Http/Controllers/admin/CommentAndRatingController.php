@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\admin;
 
 use App\Models\Comment;
 use App\Models\Rating;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class CommentAndRatingController extends Controller
 {

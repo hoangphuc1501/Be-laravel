@@ -22,6 +22,15 @@ class Products extends Model
     {
         return $this->hasOne(ProductSpecification::class, 'productId');
     }
+    public function brand()
+    {
+        return $this->belongsTo(Brands::class, 'brandID');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(ProductCategory::class, 'categoriesID');
+    }
     public $timestamps = true; 
 
     const CREATED_AT = 'createdAt'; 

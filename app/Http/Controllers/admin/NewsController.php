@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
-
+namespace App\Http\Controllers\admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\News;
 use App\Models\NewsCategory;
-
+use App\Http\Controllers\Controller;
 class NewsController extends Controller
 {
     public function show($categoryId)

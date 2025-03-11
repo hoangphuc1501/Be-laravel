@@ -1,21 +1,17 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\admin;
 
 use Illuminate\Http\Request;
-use App\Models\ProductCategory;
 use Illuminate\Support\Str;
-
-class ProductCategoryController extends Controller
+use App\Models\NewsCategory;
+use App\Http\Controllers\Controller;
+class NewsCategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 10);
-        // return response()->json(ProductCategory::all(), 200);
-        $categories = ProductCategory::select('id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug')
+        $categoriesNews = NewsCategory::select('id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug')
             ->where('deleted', false)
             ->orderBy('position', 'desc')
             ->paginate($perPage);
@@ -27,13 +23,12 @@ class ProductCategoryController extends Controller
         // ->get(); 
         return response()->json([
             'code' => 'success',
-            'message' => 'Danh sách danh mục sản phẩm.',
-            'data' => $categories
+            'message' => 'Danh sách danh mục tin tức.',
+            'data' => $categoriesNews
         ], 200);
     }
-    /**
-     * Store a newly created resource in storage.
-     */
+    
+
     public function store(Request $request)
     {
 
@@ -43,18 +38,18 @@ class ProductCategoryController extends Controller
             'image' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|boolean',
-            'parentID' => 'nullable|exists:productcategories,id', // Đảm bảo parentID tồn tại
+            'parentID' => 'nullable|exists:newscategories,id', // Đảm bảo parentID tồn tại
             'position' => 'nullable|integer',
         ]);
         // tự động tăng cho possiton
-        $maxPosition = ProductCategory::max('position') ?? 0;
+        $maxPosition =  NewsCategory::max('position') ?? 0;
         $newPosition = $maxPosition + 1;
 
         // Tạo slug
         // $slug = generateUniqueSlug($request->name);
-        $slug = generateUniqueSlug($request->name, ProductCategory::class);
+        $slug = generateUniqueSlug($request->name,  NewsCategory::class);
         // Tạo danh mục mới
-        $category = ProductCategory::create([
+        $category =  NewsCategory::create([
             'name' => $request->name,
             'image' => $request->image,
             'description' => $request->description,
@@ -72,13 +67,9 @@ class ProductCategoryController extends Controller
             'data' => $category->load('parent', 'children') // Load quan hệ để xem danh mục cha - con
         ], 201);
     }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $category = ProductCategory::find($id);
+        $category = NewsCategory::find($id);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -91,13 +82,9 @@ class ProductCategoryController extends Controller
             'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'slug', 'deleted', 'position'])
         ], 200);
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-    $category = ProductCategory::find($id);
+    $category = NewsCategory::find($id);
     if (!$category) {
         return response()->json([
             'code' => 'error',
@@ -110,7 +97,7 @@ class ProductCategoryController extends Controller
         'image' => 'nullable|string|max:255',
         'description' => 'nullable|string',
         'status' => 'required|boolean',
-        'parentID' => 'nullable|exists:productcategories,id',
+        'parentID' => 'nullable|exists:newscategories,id',
         'position' => 'nullable|integer',
     ]);
 
@@ -121,7 +108,7 @@ class ProductCategoryController extends Controller
 
     $position = $request->has('position') ? $request->position : $category->position;
     $slug = $category->name !== $validatedData['name'] 
-    ? generateUniqueSlug($validatedData['name'], ProductCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
+    ? generateUniqueSlug($validatedData['name'], NewsCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
     : $category->slug;
 
      // Cập nhật parentID, có thể null
@@ -148,87 +135,34 @@ class ProductCategoryController extends Controller
         'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug'])
     ], 200);
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        $category = ProductCategory::find($id);
-        if (!$category) {
-            return response()->json([
-                'code' => 'error',
-                'message' => 'Danh mục không tồn tại.'
-            ], 404);
-        }
-
-        $category->delete();
-        return response()->json(['message' => 'Xóa thành công'], 200);
-
-    }
     
 
-    public function softDelete(string $id)
-{
-    $category = ProductCategory::where('deleted', false)->find($id);
+    // Ẩn danh mục và các tin tức liên quan
+    public function softDelete($id)
+    {
+        $category = NewsCategory::find($id);
+        if (!$category) {
+            return response()->json(['message' => 'Danh mục không tồn tại'], 404);
+        }
 
-    if (!$category) {
-        return response()->json([
-            'code' => 'error',
-            'message' => 'Danh mục không tồn tại.'
-        ], 404);
+        // Đánh dấu danh mục là bị ẩn (deleted = 1)
+        $category->deleted = 1;
+        $category->save();
+
+        // Cập nhật tin tức liên quan
+        $category->news()->update(['deleted' => 1]);
+
+        return response()->json(['message' => 'Danh mục đã bị ẩn và các bài viết liên quan cũng đã bị ẩn']);
     }
 
-    // Xóa mềm
-    $category->update(['deleted' => true]);
+    // Phục hồi danh mục và các tin tức liên quan
+    public function restore($newsCategory)
+    {
+        $category = NewsCategory::find($newsCategory);
+        $category->restore();
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Xóa danh mục thành công.',
-    ], 200);
-}
+        $category->news()->where('deleted', 1)->update(['deleted' => 0]);
 
-public function restore(string $id)
-{
-    $category = ProductCategory::where('deleted', true)->find($id);
-
-    if (!$category) {
-        return response()->json([
-            'code' => 'error',
-            'message' => 'Danh mục không tồn tại.'
-        ], 404);
+        return response()->json(['message' => 'Danh mục và các bài viết liên quan đã được phục hồi']);
     }
-
-    // Khôi phục danh mục
-    $category->update(['deleted' => false]);
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Khôi phục danh mục thành công.',
-    ], 200);
-}
-
-// no page
-public function ListCategory(Request $request)
-{
-    $categoriesList = ProductCategory::select('id', 'name')
-        ->where('deleted', 0)
-        ->where('status', 1)
-        ->orderBy('position', 'asc')
-        ->get();
-
-    if ($categoriesList->isEmpty()) {
-        return response()->json([
-            'code' => 'error',
-            'message' => 'Không có danh mục nào.',
-            'data' => []
-        ], 404);
-    }
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách danh mục sản phẩm.',
-        'data' => $categoriesList
-    ], 200);
-}
 }
