@@ -6,9 +6,11 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Jobs\DeleteOtpAfterDelay;
 use App\Mail\OtpMail;
+use App\Models\Role;
 use App\Models\UserClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -42,31 +44,49 @@ class ClientUerController extends Controller
                 'message' => $validator->errors()
             ], 400);
         }
-
-        // Lấy position lớn nhất hiện có
-        $maxPosition = UserClient::max('position') ?? 0;
-        $newPosition = $maxPosition + 1;
-
-        // Tạo người dùng mới
-        $user = UserClient::create([
-            'fullname' => $request->fullname,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'status' => 1,
-            'deleted' => 0,
-            'position' => $newPosition
-        ]);
-
-        return response()->json([
-            'code' => 'success',
-            'message' => 'Đăng ký thành công!',
-            'user' => [
-                'fullname' => $user->fullname,
-                'email' => $user->email,
-                'phone' => $user->phone,
-            ]
-        ], 200);
+        DB::beginTransaction();
+        try {
+            // Lấy position lớn nhất hiện có
+            $maxPosition = UserClient::max('position') ?? 0;
+            $newPosition = $maxPosition + 1;
+    
+            // Tạo người dùng mới
+            $user = UserClient::create([
+                'fullname' => $request->fullname,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'password' => Hash::make($request->password),
+                'status' => 1,
+                'deleted' => 0,
+                'position' => $newPosition
+            ]);
+    
+            // Kiểm tra role "Khách hàng" có tồn tại không, nếu chưa thì tạo mới
+            $customerRole = Role::firstOrCreate(['name' => 'Khách hàng']);
+    
+            // Gán role "Khách hàng" cho user mới
+            $user->roles()->attach($customerRole->id);
+    
+            DB::commit();
+    
+            return response()->json([
+                'code' => 'success',
+                'message' => 'Đăng ký thành công!',
+                'user' => [
+                    'fullname' => $user->fullname,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'roles' => $user->roles()->pluck('name') // Trả về vai trò của user
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Đã có lỗi xảy ra',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 
 
@@ -388,4 +408,73 @@ class ClientUerController extends Controller
     //         ], 500);
     //     }
     }
+
+
+    public function loginAdmin(Request $request)
+{
+    // Validate dữ liệu đầu vào
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|string|min:6',
+    ]);
+
+    // Tìm user theo email
+    $user = UserClient::where('email', $credentials['email'])
+        ->where('status', 1)
+        ->where('deleted', 0)
+        ->first();
+
+    if (!$user) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Người dùng không tồn tại',
+        ], 400);
+    }
+
+    // Kiểm tra tài khoản có bị khóa không
+    if ($user->status === 0) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Tài khoản đã bị khóa!',
+        ], 400);
+    }
+    
+    if (!Hash::check($credentials['password'], $user->password)) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Mật khẩu không chính xác',
+        ], 400);
+    }
+    // Lấy vai trò của user
+    $roles = $user->roles()->pluck('name')->toArray(); // Lấy danh sách vai trò
+
+    // Nếu user có vai trò "Khách hàng", không cho vào admin
+    if (in_array('Khách hàng', $roles)) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Bạn không có quyền truy cập vào hệ thống admin!',
+        ], 403);
+    }
+
+    // Tạo JWT token
+    $token = Auth::guard('client_api')->attempt($credentials);
+    if (!$token) {
+        return response()->json([
+            'code' => 'error',
+            'message' => 'Đăng nhập thất bại!',
+        ], 400);
+    }
+
+    return response()->json([
+        'code' => 'success',
+        'message' => 'Đăng nhập thành công!',
+        'token' => $token,
+        'user' => [
+            'id' => $user->id,
+            'fullname' => $user->fullname,
+            'email' => $user->email,
+            'roles' => $roles,
+        ],
+    ], 200);
+}
 }

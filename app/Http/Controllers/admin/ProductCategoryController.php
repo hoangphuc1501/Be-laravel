@@ -9,32 +9,99 @@ use App\Http\Controllers\Controller;
 
 class ProductCategoryController extends Controller
 {
+    // public function index(Request $request)
+    // {
+    //     $perPage = $request->input('per_page', 10);
+    //     // return response()->json(ProductCategory::all(), 200);
+    //     $categories = ProductCategory::select(
+    //         'productcategories.id',
+    //         'productcategories.name',
+    //         'productcategories.image',
+    //         'productcategories.description',
+    //         'productcategories.status',
+    //         'productcategories.parentID',
+    //         'productcategories.position',
+    //         'productcategories.slug',
+    //         'parentcategories.name as parentName' // Lấy tên danh mục cha
+    //     )
+    //     ->leftJoin('productcategories as parentcategories', 'productcategories.parentID', '=', 'parentcategories.id')
+    //     ->where('productcategories.deleted', false)
+    //     ->orderBy('productcategories.position', 'desc')
+    //     ->paginate($perPage);
+    //     return response()->json([
+    //         'code' => 'success',
+    //         'message' => 'Danh sách danh mục sản phẩm.',
+    //         'data' => $categories
+    //     ], 200);
+    // }
+
+
     /**
-     * Display a listing of the resource.
+     * Store a newly created resource in storage.
      */
+
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 10);
-        // return response()->json(ProductCategory::all(), 200);
-        $categories = ProductCategory::select('id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug')
-            ->where('deleted', false)
-            ->orderBy('position', 'desc')
-            ->paginate($perPage);
-            // ->get();
-        
-        // lấy danh mục cha
-        // $categories = ProductCategory::whereNull('parentID')
-        // ->with('children') // Lấy luôn danh mục con
-        // ->get(); 
+        $status = $request->input('status');
+        $search = $request->input('search');
+        $sort = $request->input('sort');
+
+        $query = ProductCategory::select(
+            'productcategories.id',
+            'productcategories.name',
+            'productcategories.image',
+            'productcategories.description',
+            'productcategories.status',
+            'productcategories.parentID',
+            'productcategories.position',
+            'productcategories.slug',
+            'parentcategories.name as parentName'
+        )
+            ->leftJoin('productcategories as parentcategories', 'productcategories.parentID', '=', 'parentcategories.id')
+            ->where('productcategories.deleted', false);
+
+        // Lọc theo trạng thái
+        if ($status === 'active') {
+            $query->where('productcategories.status', 1);
+        } elseif ($status === 'inactive') {
+            $query->where('productcategories.status', 0);
+        }
+
+        // Tìm kiếm theo tên
+        if (!empty($search)) {
+            $query->where('productcategories.name', 'like', '%' . $search . '%');
+        }
+
+        // Sắp xếp
+        switch ($sort) {
+            case 'position-asc':
+                $query->orderBy('productcategories.position', 'asc');
+                break;
+            case 'position-desc':
+                $query->orderBy('productcategories.position', 'desc');
+                break;
+            case 'title-asc':
+                $query->orderBy('productcategories.name', 'asc');
+                break;
+            case 'title-desc':
+                $query->orderBy('productcategories.name', 'desc');
+                break;
+            default:
+                $query->orderBy('productcategories.position', 'desc');
+                break;
+        }
+
+        $categories = $query->paginate($perPage);
+
         return response()->json([
             'code' => 'success',
             'message' => 'Danh sách danh mục sản phẩm.',
             'data' => $categories
         ], 200);
     }
-    /**
-     * Store a newly created resource in storage.
-     */
+
+
     public function store(Request $request)
     {
 
@@ -96,58 +163,62 @@ class ProductCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, ProductCategory $category)
     {
-    $category = ProductCategory::find($id);
-    if (!$category) {
+        $category = ProductCategory::find($id);
+        if (!$category) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Danh mục không tồn tại.'
+            ], 404);
+        }
+
+        // Kiểm tra quyền cập nhật danh mục
+        $this->authorize('update', $category);
+
+        // Validate dữ liệu đầu vào
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'image' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'required|boolean',
+            'parentID' => 'nullable|exists:productcategories,id',
+            'position' => 'nullable|integer',
+        ]);
+
+        // Kiểm tra nếu tên thay đổi thì tạo slug mới
+        // $slug = $category->name !== $validatedData['name'] 
+        //     ? generateUniqueSlug($validatedData['name']) 
+        //     : $category->slug;
+
+        $position = $request->has('position') ? $request->position : $category->position;
+        $slug = $category->name !== $validatedData['name']
+            ? generateUniqueSlug($validatedData['name'], ProductCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
+            : $category->slug;
+
+        // Cập nhật parentID, có thể null
+        $parentID = $request->has('parentID') ? $request->input('parentID') : $category->parentID;
+
+        $category->fill([
+            'name' => $validatedData['name'],
+            'image' => $validatedData['image'] ?? $category->image,
+            'description' => $validatedData['description'] ?? $category->description,
+            'status' => $validatedData['status'],
+            'parentID' => $parentID,
+            'position' => $position,
+            'slug' => $slug,
+        ]);
+
+        // Kiểm tra nếu dữ liệu thay đổi mới update
+        if ($category->isDirty()) {
+            $category->save();
+        }
+
         return response()->json([
-            'code' => 'error',
-            'message' => 'Danh mục không tồn tại.'
-        ], 404);
-    }
-
-    $validatedData = $request->validate([
-        'name' => 'required|string|max:255',
-        'image' => 'nullable|string|max:255',
-        'description' => 'nullable|string',
-        'status' => 'required|boolean',
-        'parentID' => 'nullable|exists:productcategories,id',
-        'position' => 'nullable|integer',
-    ]);
-
-    // Kiểm tra nếu tên thay đổi thì tạo slug mới
-    // $slug = $category->name !== $validatedData['name'] 
-    //     ? generateUniqueSlug($validatedData['name']) 
-    //     : $category->slug;
-
-    $position = $request->has('position') ? $request->position : $category->position;
-    $slug = $category->name !== $validatedData['name'] 
-    ? generateUniqueSlug($validatedData['name'], ProductCategory::class)  // Sử dụng hàm generateUniqueSlug với bảng tương ứng
-    : $category->slug;
-
-     // Cập nhật parentID, có thể null
-    $parentID = $request->has('parentID') ? $request->input('parentID') : $category->parentID;
-
-    $category->fill([
-        'name' => $validatedData['name'],
-        'image' => $validatedData['image'] ?? $category->image,
-        'description' => $validatedData['description'] ?? $category->description,
-        'status' => $validatedData['status'],
-        'parentID' => $parentID,
-        'position' => $position,
-        'slug' => $slug,
-    ]);
-
-    // Kiểm tra nếu dữ liệu thay đổi mới update
-    if ($category->isDirty()) {
-        $category->save();
-    }
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Cập nhật danh mục thành công.',
-        'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug'])
-    ], 200);
+            'code' => 'success',
+            'message' => 'Cập nhật danh mục thành công.',
+            'data' => $category->only(['id', 'name', 'image', 'description', 'status', 'parentID', 'position', 'slug'])
+        ], 200);
     }
 
     /**
@@ -164,72 +235,154 @@ class ProductCategoryController extends Controller
         }
 
         $category->delete();
-        return response()->json(['message' => 'Xóa thành công'], 200);
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Xóa danh mục thành công.',
+        ], 200);
 
     }
-    
+
 
     public function softDelete(string $id)
-{
-    $category = ProductCategory::where('deleted', false)->find($id);
+    {
+        $category = ProductCategory::where('deleted', false)->find($id);
 
-    if (!$category) {
+        if (!$category) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Danh mục không tồn tại.'
+            ], 404);
+        }
+
+        // Xóa mềm
+        $category->update(['deleted' => true]);
+
         return response()->json([
-            'code' => 'error',
-            'message' => 'Danh mục không tồn tại.'
-        ], 404);
+            'code' => 'success',
+            'message' => 'Xóa danh mục thành công.',
+        ], 200);
     }
 
-    // Xóa mềm
-    $category->update(['deleted' => true]);
+    public function restore(string $id)
+    {
+        $category = ProductCategory::where('deleted', true)->find($id);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Xóa danh mục thành công.',
-    ], 200);
-}
+        if (!$category) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Danh mục không tồn tại.'
+            ], 404);
+        }
 
-public function restore(string $id)
-{
-    $category = ProductCategory::where('deleted', true)->find($id);
+        // Khôi phục danh mục
+        $category->update(['deleted' => false]);
 
-    if (!$category) {
         return response()->json([
-            'code' => 'error',
-            'message' => 'Danh mục không tồn tại.'
-        ], 404);
+            'code' => 'success',
+            'message' => 'Khôi phục danh mục thành công.',
+        ], 200);
     }
 
-    // Khôi phục danh mục
-    $category->update(['deleted' => false]);
+    // no page
+    public function ListCategory(Request $request)
+    {
+        $categoriesList = ProductCategory::select('id', 'name')
+            ->where('deleted', 0)
+            ->where('status', 1)
+            ->orderBy('position', 'asc')
+            ->get();
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Khôi phục danh mục thành công.',
-    ], 200);
-}
+        if ($categoriesList->isEmpty()) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Không có danh mục nào.',
+                'data' => []
+            ], 404);
+        }
 
-// no page
-public function ListCategory(Request $request)
-{
-    $categoriesList = ProductCategory::select('id', 'name')
-        ->where('deleted', 0)
-        ->where('status', 1)
-        ->orderBy('position', 'asc')
-        ->get();
-
-    if ($categoriesList->isEmpty()) {
         return response()->json([
-            'code' => 'error',
-            'message' => 'Không có danh mục nào.',
-            'data' => []
-        ], 404);
+            'code' => 'success',
+            'message' => 'Danh sách danh mục sản phẩm.',
+            'data' => $categoriesList
+        ], 200);
     }
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách danh mục sản phẩm.',
-        'data' => $categoriesList
-    ], 200);
-}
+    // cập nhật trạng thái
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|boolean',
+        ]);
+
+        $category = ProductCategory::find($id);
+        if (!$category) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Danh mục sản phẩm không tồn tại!'
+            ], 404);
+        }
+
+        $category->status = $request->status;
+        $category->save();
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Cập nhật trạng thái thành công.',
+            'data' => $category
+        ]);
+    }
+
+    // thay đổi vị trí
+    public function updatePosition(Request $request, $id)
+    {
+        $request->validate([
+            'position' => 'required|integer|min:1',
+        ]);
+
+        $category = ProductCategory::where('deleted', false)->find($id);
+
+        if (!$category) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Danh mục không tồn tại.',
+            ], 404);
+        }
+
+        $category->position = $request->position;
+        $category->save();
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Cập nhật vị trí thành công.',
+            'data' => $category
+        ]);
+    }
+
+    public function trashProductCategory(Request $request)
+    {
+        $perPage = $request->input('per_page', 10);
+        // return response()->json(ProductCategory::all(), 200);
+        $categories = ProductCategory::select(
+            'productcategories.id',
+            'productcategories.name',
+            'productcategories.image',
+            'productcategories.description',
+            'productcategories.status',
+            'productcategories.parentID',
+            'productcategories.position',
+            'productcategories.slug',
+            'parentcategories.name as parentName' 
+        )
+        ->leftJoin('productcategories as parentcategories', 'productcategories.parentID', '=', 'parentcategories.id')
+        ->where('productcategories.deleted', true)
+        ->orderBy('productcategories.position', 'desc')
+        ->paginate($perPage);
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách danh mục sản phẩm.',
+            'data' => $categories
+        ], 200);
+    }
+
+
 }

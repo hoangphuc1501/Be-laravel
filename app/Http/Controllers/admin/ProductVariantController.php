@@ -7,6 +7,8 @@ use App\Models\ProductVariants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
+use App\Models\VariationOptions;
+use Illuminate\Support\Facades\Log;
 
 class ProductVariantController extends Controller
 {
@@ -24,37 +26,100 @@ class ProductVariantController extends Controller
     }
 
     // thêm mới
+    // public function store(Request $request)
+    // {
+    //     // Validate dữ liệu đầu vào
+    //     $validator = Validator::make($request->all(), [
+    //         'ProductID' => 'required|exists:products,id',
+    //         'color' => 'required|string|max:255',
+    //         'size' => 'required|string|max:255',
+    //         'price' => 'required|numeric',
+    //         'discount' => 'nullable|numeric',
+    //         'specialPrice' => 'nullable|numeric',
+    //         'status' => 'required|boolean',
+    //         'images' => 'nullable|array',
+    //         'images.*' => 'required|string|url'
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
+
+    //     // Tạo mới variant
+    //     $variant = ProductVariants::create([
+    //         'ProductID' => $request->ProductID,
+    //         'color' => $request->color,
+    //         'size' => $request->size,
+    //         'price' => $request->price,
+    //         'discount' => $request->discount ?? 0,
+    //         'specialPrice' => $request->specialPrice ?? 0,
+    //         'status' => $request->status
+    //     ]);
+
+    //     if ($request->has('images')) {
+    //         foreach ($request->images as $imageUrl) {
+    //             ProductImage::create([
+    //                 'productVariantID' => $variant->id,
+    //                 'image' => $imageUrl,
+    //                 'imageName' => basename($imageUrl),
+    //                 'status' => 1,
+    //                 'deleted' => 0
+    //             ]);
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'code' => 'success',
+    //         'message' => 'Biến thể được tạo thành công.',
+    //         'variant' => $variant->load('images')
+    //     ], 201);
+    // }
     public function store(Request $request)
     {
+        // Ghi log để debug nếu cần
+        Log::info('Dữ liệu request thêm biến thể:', $request->all());
+    
         // Validate dữ liệu đầu vào
         $validator = Validator::make($request->all(), [
             'ProductID' => 'required|exists:products,id',
-            'color' => 'required|string|max:255',
-            'size' => 'required|string|max:255',
             'price' => 'required|numeric',
             'discount' => 'nullable|numeric',
             'specialPrice' => 'nullable|numeric',
             'status' => 'required|boolean',
+    
+            'colorId' => 'required|integer|exists:colors,id', // Chỉ nhận một màu sắc
+            'sizeId' => 'required|integer|exists:sizes,id',  // Chỉ nhận một kích thước
+            'stock'  => 'required|integer|min:0',
+    
             'images' => 'nullable|array',
             'images.*' => 'required|string|url'
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
-        // Tạo mới variant
+    
+        // Tạo mới biến thể
         $variant = ProductVariants::create([
             'ProductID' => $request->ProductID,
-            'color' => $request->color,
-            'size' => $request->size,
             'price' => $request->price,
+            'stock' => $request->stock, // Chỉ có một stock cho một kích thước
             'discount' => $request->discount ?? 0,
             'specialPrice' => $request->specialPrice ?? 0,
-            'status' => $request->status
+            'status' => $request->status,
+            'deleted' => 0
         ]);
-
-        if ($request->has('images')) {
+    
+        // Gán kích thước và màu sắc vào bảng VariationOptions
+        VariationOptions::create([
+            'variantId' => $variant->id,
+            'sizeId' => $request->sizeID,
+            'colorId' => $request->colorID,
+            'stock' => $request->stock
+        ]);
+    
+        // Nếu có hình ảnh thì lưu vào bảng ProductImage
+        if (!empty($request->images)) {
             foreach ($request->images as $imageUrl) {
                 ProductImage::create([
                     'productVariantID' => $variant->id,
@@ -65,13 +130,14 @@ class ProductVariantController extends Controller
                 ]);
             }
         }
-
+    
         return response()->json([
             'code' => 'success',
             'message' => 'Biến thể được tạo thành công.',
-            'variant' => $variant->load('images')
+            'variant' => $variant->load(['variationOptions', 'images'])
         ], 201);
     }
+    
 
 
     // cập nhật biến thểpublic 

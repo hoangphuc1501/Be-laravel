@@ -66,7 +66,10 @@ class Kernel extends HttpKernel
         'cors' => \Illuminate\Http\Middleware\HandleCors::class,
 
         'jwt.auth' => \App\Http\Middleware\JWTMiddleware::class,
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,
     ];
 
-    
+    protected $routeMiddleware = [
+        'permission' => \App\Http\Middleware\CheckPermission::class,
+    ];
 }

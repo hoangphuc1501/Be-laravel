@@ -11,25 +11,22 @@ class Comment extends Model
 
     protected $table = 'comments'; 
 
-    protected $fillable = ['content', 'deleted', 'userID', 'productID'];
+    protected $fillable = ['content', 'userId', 'productId'];
 
-    public function scopeVisible($query)
-    {
-        return $query->where('deleted', 0);
-    }
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'userID');
+        return $this->belongsTo(UserClient::class, 'userId')->select('id', 'fullname');
     }
 
     public function product()
     {
-        return $this->belongsTo(Products::class, 'productID');
+        return $this->belongsTo(Products::class, 'productId')->select('id', 'title');
     }
+
     public $timestamps = true; 
 
-    const CREATED_AT = 'createdAt';
-    const UPDATED_AT = null; 
+    const CREATED_AT = 'createdAt'; 
+    const UPDATED_AT = 'updatedAt'; 
 }
 

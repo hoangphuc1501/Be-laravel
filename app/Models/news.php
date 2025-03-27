@@ -19,21 +19,6 @@ class news extends Model
         return $this->belongsTo(NewsCategory::class, 'newsCategory');
     }
 
-    public function scopeNotDeleted($query)
-    {
-        return $query->where('deleted', 0);
-    }
-
-    public function scopeOnlyDeleted($query)
-    {
-        return $query->where('deleted', 1);
-    }
-
-    public function restoreNews()
-    {
-        $this->deleted = 0;
-        $this->save();
-    }
     public $timestamps = true; 
 
     const CREATED_AT = 'createdAt'; 

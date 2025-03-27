@@ -19,13 +19,24 @@ class UserClient extends Authenticatable implements JWTSubject
     protected $table = 'users'; // Đảm bảo đúng tên bảng
 
     protected $fillable = [
-        'fullname', 'email', 'password', 'address', 'phone',
-        'otp', 'otpExpireAt', 'image', 'birthday', 'gender', 'status',
-        'position', 'deleted'
+        'fullname',
+        'email',
+        'password',
+        'address',
+        'phone',
+        'otp',
+        'otpExpireAt',
+        'image',
+        'birthday',
+        'gender',
+        'status',
+        'position',
+        'deleted'
     ];
 
     protected $hidden = [
-        'password','otp'
+        'password',
+        'otp'
     ];
 
     // Implement JWTSubject
@@ -42,6 +53,23 @@ class UserClient extends Authenticatable implements JWTSubject
     public function isOtpValid($otp)
     {
         return $this->otp && Hash::check($otp, $this->otp) && Carbon::parse($this->otpExpireAt)->isFuture();
+    }
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'userroles', 'userId', 'roleId');
+    }
+    public function hasRole(string $roleName)
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+    public function hasPermission($permission)
+    {
+        return $this->permissions()->where('slug', $permission)->select('name', 'slug')->first();
+    }
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class, 'rolepermissions', 'roleId', 'permissionId')
+            ->wherePivot('roleId', $this->roleId);
     }
 
     public $timestamps = true;

@@ -64,7 +64,7 @@ class ClientProductController extends Controller
         ], 404);
     }
 
-    // ✅ Lấy danh sách biến thể theo từng màu sắc
+    //  Lấy danh sách biến thể theo từng màu sắc
     $formattedVariants = [];
     foreach ($product->variants as $variant) {
         $color = optional($variant->colors->first());

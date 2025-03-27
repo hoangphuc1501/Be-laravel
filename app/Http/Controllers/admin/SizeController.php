@@ -8,24 +8,56 @@ use App\Http\Controllers\Controller;
 
 class SizeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        // $perPage = $request->input('per_page', 10);
-        $sizes = Size::select('id', 'name', 'status', 'position')
-            ->where('deleted', false)
-            ->orderBy('position', 'desc')
-            // ->paginate($perPage);
-            ->get();
+    public function index(Request $request)
+{
+    $perPage = $request->input('per_page', 10);
+    $status = $request->input('status');
+    $search = $request->input('search');
+    $sort = $request->input('sort');
 
-        return response()->json([
-            'code' => 'success',
-            'message' => 'Danh sách kích thước.',
-            'data' => $sizes
-        ], 200);
+    $query = Size::select('id', 'name', 'status', 'position')
+        ->where('deleted', false);
+
+    // Lọc theo trạng thái
+    if ($status === 'active') {
+        $query->where('status', 1);
+    } elseif ($status === 'inactive') {
+        $query->where('status', 0);
     }
+
+    // Tìm kiếm theo tên
+    if (!empty($search)) {
+        $query->where('name', 'like', '%' . $search . '%');
+    }
+
+    // Sắp xếp
+    switch ($sort) {
+        case 'position-asc':
+            $query->orderBy('position', 'asc');
+            break;
+        case 'position-desc':
+            $query->orderBy('position', 'desc');
+            break;
+        case 'title-asc':
+            $query->orderBy('name', 'asc');
+            break;
+        case 'title-desc':
+            $query->orderBy('name', 'desc');
+            break;
+        default:
+            $query->orderBy('position', 'desc');
+            break;
+    }
+
+    $sizes = $query->paginate($perPage);
+
+    return response()->json([
+        'code' => 'success',
+        'message' => 'Danh sách kích thước.',
+        'data' => $sizes
+    ], 200);
+}
+
 
     /**
      * Store a newly created resource in storage.
@@ -189,4 +221,72 @@ public function listSize()
             'data' => $sizes
         ], 200);
     }
+
+    // cập nhật trạng thái
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|boolean',
+        ]);
+
+        $size = Size::find($id);
+        if (!$size) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Kích thước không tồn tại!'
+            ], 404);
+        }
+
+        $size->status = $request->status;
+        $size->save();
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Cập nhật trạng thái thành công.',
+            'data' => $size
+        ]);
+    }
+
+    // thay đổi vị trí
+    public function updatePosition(Request $request, $id)
+    {
+        $request->validate([
+            'position' => 'required|integer|min:1',
+        ]);
+
+        $size = Size::where('deleted', false)->find($id);
+
+        if (!$size) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Kích thước không tồn tại.',
+            ], 404);
+        }
+
+        $size->position = $request->position;
+        $size->save();
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Cập nhật vị trí thành công.',
+            'data' => $size
+        ]);
+    }
+
+    // 
+    public function TrashSize(Request $request)
+{
+    $perPage = $request->input('per_page', 10);
+
+    $sizes = Size::select('id', 'name', 'status', 'position')
+        ->where('deleted', true)
+        ->orderBy('position', 'desc')
+        ->paginate($perPage);
+
+    return response()->json([
+        'code' => 'success',
+        'message' => 'Danh sách kích thước.',
+        'data' => $sizes
+    ], 200);
+}
 }
