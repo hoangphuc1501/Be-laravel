@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\admin;
 
 use App\Models\Brands;
+use App\Models\news;
 use App\Models\Order;
 use App\Models\ProductCategory;
 use App\Models\Products;
@@ -21,13 +22,13 @@ class DashboardController extends Controller
             'code' => 'success',
             'message' => 'Danh sách thống kê',
             'data' => [
-                'total_revenue' => Order::sum('totalPrice'),
+                'total_revenue' => Order::where('status', '!=', 'canceled')->sum('totalPrice'),
                 'total_products' => Products::count(),
                 'total_brands' => Brands::count(),
                 'total_categories' => ProductCategory::count(),
                 'total_orders' => Order::count(),
                 'total_voucher_codes' => Voucher::count(), 
-                // 'total_posts' => Post::count(),  // Tổng bài viết
+                'total_posts' => news::count(), 
                 'total_users' => UserClient::count()
             ]
         ]);

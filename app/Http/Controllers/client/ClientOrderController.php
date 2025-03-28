@@ -353,7 +353,7 @@ class ClientOrderController extends Controller
                     'message' => 'Người dùng chưa đăng nhập!'
                 ], 401);
             }
-            Log::info("🚀 Dữ liệu nhận từ Frontend:", $request->all());
+            Log::info("Dữ liệu nhận từ Frontend:", $request->all());
             if (!$request->input('shippingAddress')) {
                 return response()->json([
                     'code' => 'error',
@@ -374,7 +374,7 @@ class ClientOrderController extends Controller
                 return $cart->quantity * ($cart->productVariant->specialPrice ?? $cart->productVariant->price);
             });
 
-            // Xử lý voucher (nếu có)
+            // Xử lý voucher 
             $discountAmount = 0;
             $voucherId = null;
             if ($request->filled('code')) {
@@ -404,7 +404,7 @@ class ClientOrderController extends Controller
                 $totalPrice -= $discountAmount;
                 $voucherId = $voucher->id;
             }
-            Log::info("📌 Giá trị voucherId trước khi lưu đơn hàng:", ['voucherId' => $voucherId]);
+            Log::info(" Giá trị voucherId trước khi lưu đơn hàng:", ['voucherId' => $voucherId]);
 
             // Xác định phương thức thanh toán
             $isZaloPay = $request->input('paymentMethod') === "Thanh toán bằng ZaloPay";
@@ -419,7 +419,7 @@ class ClientOrderController extends Controller
                 'totalPrice' => $totalPrice,
                 'shippingAddress' => $request->input('shippingAddress'),
                 'paymentStatus' => 'pending',
-                'paymentMethod' => $request->input('paymentMethod', 'COD'),
+                'paymentMethod' => $request->input('paymentMethod', 'Thanh toán khi nhận hàng'),
                 'status' => 'pending',
                 'voucherId' => $voucherId,
                 'createdAt' => now(),
@@ -440,14 +440,14 @@ class ClientOrderController extends Controller
                     'updatedAt' => now(),
                 ]);
             }
-            Log::info("✅ Đã lưu orderitems cho đơn hàng #{$order->id}");
+            Log::info(" Đã lưu orderitems cho đơn hàng #{$order->id}");
             // Nếu chọn ZaloPay, gọi API thanh toán
             if ($isZaloPay) {
                 $zalopayResponse = $this->createZaloPayPayment($orderCode, $totalPrice);
                 Log::info("🔹 Phản hồi từ ZaloPay:", ['response' => $zalopayResponse]);
 
                 if ($zalopayResponse['return_code'] != 1) {
-                    Log::warning("⚠️ Thanh toán ZaloPay thất bại", ['error' => $zalopayResponse['return_message']]);
+                    Log::warning("Thanh toán ZaloPay thất bại", ['error' => $zalopayResponse['return_message']]);
                     DB::rollBack();
                     return response()->json([
                         'code' => 'error',
@@ -484,7 +484,7 @@ class ClientOrderController extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("❌ Lỗi khi tạo đơn hàng", ['error' => $e->getMessage()]);
+            Log::error(" Lỗi khi tạo đơn hàng", ['error' => $e->getMessage()]);
             return response()->json([
                 'code' => 'error',
                 'message' => 'Lỗi server, vui lòng thử lại!',
@@ -493,221 +493,7 @@ class ClientOrderController extends Controller
         }
     }
 
-//     public function placeOrder(Request $request)
-// {
-//     try {
-//         DB::beginTransaction();
 
-//         $user = Auth::user();
-//         if (!$user) {
-//             return response()->json([
-//                 'code' => 'error',
-//                 'message' => 'Người dùng chưa đăng nhập!'
-//             ], 401);
-//         }
-
-//         Log::info("🚀 Dữ liệu nhận từ Frontend:", $request->all());
-
-//         if (!$request->input('shippingAddress')) {
-//             return response()->json([
-//                 'code' => 'error',
-//                 'message' => 'Địa chỉ giao hàng không được để trống!'
-//             ], 400);
-//         }
-
-//         $cartItems = Cart::where('userId', $user->id)->with('productVariant.variationOptions')->get();
-//         if ($cartItems->isEmpty()) {
-//             return response()->json([
-//                 'code' => 'error',
-//                 'message' => 'Giỏ hàng trống!'
-//             ], 400);
-//         }
-
-//         $totalPrice = $cartItems->sum(function ($cart) {
-//             return $cart->quantity * ($cart->productVariant->specialPrice ?? $cart->productVariant->price);
-//         });
-
-//         $discountAmount = 0;
-//         $voucherId = null;
-//         if ($request->filled('code')) {
-//             $voucher = Voucher::where('code', $request->code)
-//                 ->where('status', 'active')
-//                 ->where('deleted', false)
-//                 ->first();
-
-//             if (!$voucher) {
-//                 return response()->json([
-//                     'code' => 'error',
-//                     'message' => 'Voucher không hợp lệ hoặc đã hết hạn.'
-//                 ], 400);
-//             }
-
-//             if ($totalPrice < $voucher->minOrderValue) {
-//                 return response()->json([
-//                     'code' => 'error',
-//                     'message' => 'Đơn hàng không đủ điều kiện áp dụng voucher.'
-//                 ], 400);
-//             }
-
-//             $discountAmount = ($voucher->discountType == 1)
-//                 ? min($totalPrice * ($voucher->discountValue / 100), $voucher->maxDiscount)
-//                 : min($voucher->discountValue, $voucher->maxDiscount ?? $voucher->discountValue);
-
-//             $totalPrice -= $discountAmount;
-//             $voucherId = $voucher->id;
-//         }
-
-//         $isZaloPay = $request->input('paymentMethod') === "Thanh toán bằng ZaloPay";
-//         $isVNPay = $request->input('paymentMethod') === "Thanh toán bằng VNPay";
-//         $orderCode = ($isZaloPay || $isVNPay) ? date("ymd") . "_" . time() : "ORD" . time();
-
-//         $order = Order::create([
-//             'userId' => $user->id,
-//             'code' => trim($orderCode),
-//             'note' => $request->input('note', ''),
-//             'totalPrice' => $totalPrice,
-//             'shippingAddress' => $request->input('shippingAddress'),
-//             'paymentStatus' => 'pending',
-//             'paymentMethod' => $request->input('paymentMethod', 'COD'),
-//             'status' => 'pending',
-//             'voucherId' => $voucherId,
-//             'createdAt' => now(),
-//             'updatedAt' => now(),
-//         ]);
-
-//         foreach ($cartItems as $cart) {
-//             OrderItem::create([
-//                 'orderId' => $order->id,
-//                 'productVariantId' => $cart->productVariantId,
-//                 'sizeId' => $cart->sizeId,
-//                 'colorId' => $cart->colorId,
-//                 'price' => $cart->productVariant->specialPrice ?? $cart->productVariant->price,
-//                 'quantity' => $cart->quantity,
-//                 'subTotal' => $cart->quantity * ($cart->productVariant->specialPrice ?? $cart->productVariant->price),
-//                 'createdAt' => now(),
-//                 'updatedAt' => now(),
-//             ]);
-//         }
-
-//         if ($isZaloPay) {
-//             $zalopayResponse = $this->createZaloPayPayment($orderCode, $totalPrice);
-//             if ($zalopayResponse['return_code'] != 1) {
-//                 DB::rollBack();
-//                 return response()->json([
-//                     'code' => 'error',
-//                     'message' => 'Không thể tạo giao dịch ZaloPay!',
-//                     'error' => $zalopayResponse['return_message'],
-//                 ], 400);
-//             }
-//             $order->update(['zp_trans_token' => $zalopayResponse['zp_trans_token']]);
-//         } elseif ($isVNPay) {
-//             $vnpayUrl = $this->createVNPayPayment($orderCode, $totalPrice, $order->id);
-//             if (!$vnpayUrl) {
-//                 DB::rollBack();
-//                 return response()->json([
-//                     'code' => 'error',
-//                     'message' => 'Không thể tạo giao dịch VNPay!',
-//                 ], 400);
-//             }
-//         } else {
-//             if ($voucherId) {
-//                 Voucher::where('id', $voucherId)->increment('numberOfUses');
-//             }
-//             Cart::where('userId', $user->id)->delete();
-//         }
-
-//         DB::commit();
-
-//         return response()->json([
-//             'code' => 'success',
-//             'message' => $isZaloPay ? 'Chờ thanh toán ZaloPay...' : ($isVNPay ? 'Chuyển hướng VNPay...' : 'Đặt hàng thành công!'),
-//             'order_url' => $isZaloPay ? $zalopayResponse['order_url'] : ($isVNPay ? $vnpayUrl : null),
-//             'zp_trans_token' => $isZaloPay ? $zalopayResponse['zp_trans_token'] : null,
-//             'app_trans_id' => $isZaloPay ? $orderCode : null,
-//             'orderId' => $order->id,
-//             'discountAmount' => $discountAmount
-//         ], 200);
-//     } catch (\Exception $e) {
-//         DB::rollBack();
-//         Log::error("❌ Lỗi khi tạo đơn hàng", ['error' => $e->getMessage()]);
-//         return response()->json([
-//             'code' => 'error',
-//             'message' => 'Lỗi server, vui lòng thử lại!',
-//             'error' => $e->getMessage(),
-//         ], 500);
-//     }
-// }
-
-private function createVNPayPayment($orderCode, $amount, $orderId)
-{
-    $vnp_TmnCode = env('VNP_TMNCODE');
-    $vnp_HashSecret = env('VNP_HASH_SECRET');
-    $vnp_Url = env('VNP_URL');
-    $vnp_Returnurl = env('VNP_RETURN_URL');
-
-    $inputData = [
-        "vnp_Version" => "2.1.0",
-        "vnp_TmnCode" => $vnp_TmnCode,
-        "vnp_Amount" => $amount * 100,
-        "vnp_Command" => "pay",
-        "vnp_CreateDate" => date('YmdHis'),
-        "vnp_CurrCode" => "VND",
-        "vnp_IpAddr" => request()->ip(),
-        "vnp_Locale" => "vn",
-        "vnp_OrderInfo" => "Thanh toan don hang #$orderId",
-        "vnp_OrderType" => "billpayment",
-        "vnp_ReturnUrl" => $vnp_Returnurl,
-        "vnp_TxnRef" => $orderCode,
-    ];
-
-    ksort($inputData);
-    $hashdata = collect($inputData)->map(function ($v, $k) {
-        return urlencode($k) . "=" . urlencode($v);
-    })->implode('&');
-
-    $query = http_build_query($inputData);
-    $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
-    return $vnp_Url . '?' . $query . '&vnp_SecureHash=' . $vnpSecureHash;
-}
-
-public function handleVNPayReturn(Request $request)
-{
-    $inputData = $request->all();
-    $vnp_HashSecret = env('VNP_HASH_SECRET');
-
-    $vnp_SecureHash = $inputData['vnp_SecureHash'] ?? null;
-    unset($inputData['vnp_SecureHash'], $inputData['vnp_SecureHashType']);
-
-    ksort($inputData);
-    $hashData = collect($inputData)->map(function ($v, $k) {
-        return urlencode($k) . "=" . urlencode($v);
-    })->implode('&');
-
-    $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
-
-    if ($secureHash === $vnp_SecureHash && $request->vnp_ResponseCode === "00") {
-        // Cập nhật đơn hàng
-        $order = Order::where('code', $request->vnp_TxnRef)->first();
-        if ($order && $order->paymentStatus === 'pending') {
-            $order->update([
-                'paymentStatus' => 'paid',
-                'status' => 'processing'
-            ]);
-
-            // Tăng lần dùng voucher
-            if ($order->voucherId) {
-                Voucher::where('id', $order->voucherId)->increment('numberOfUses');
-            }
-
-            // Xóa giỏ hàng
-            Cart::where('userId', $order->userId)->delete();
-        }
-
-        return redirect('http://localhost:3000/payment-result?code=00');
-    }
-
-    return redirect('http://localhost:3000/payment-result?code=' . ($request->vnp_ResponseCode ?? 'error'));
-}
 
     public function createZaloPayPayment($orderCode, $totalPrice)
     {
@@ -725,13 +511,13 @@ public function handleVNPayReturn(Request $request)
             "description" => "Thanh toán đơn hàng #" . $orderCode,
             "embed_data" => json_encode([
                 // "redirecturl" => "http://localhost:3000/payment-success?orderId=" . $orderCode,
-                "redirecturl" => env('ZALOPAY_REDIRECT_URL'),
-                "callbackurl" => env('ZALOPAY_CALLBACK_URL'),
+                // "callbackurl" => env('ZALOPAY_CALLBACK_URL'),
+                "redirecturl" => "http://localhost:3000/payment-success?app_trans_id=" . $orderCode,
                 "payment_methods" => ["zalopayapp", "atm", "cc"]
             ]),
             "bank_code" => ""
         ];
-        Log::info("⚙️ ZaloPay Payload gửi đi", ['payload' => $data]);
+        Log::info(" ZaloPay Payload gửi đi", ['payload' => $data]);
 
         $dataToHash = implode("|", [
             $data["app_id"],
@@ -745,13 +531,9 @@ public function handleVNPayReturn(Request $request)
 
         $data["mac"] = hash_hmac("sha256", $dataToHash, $key1);
 
-        // $response = Http::asForm()->post($endpoint, $data);
-
-        // return json_decode($response->body(), true);
         $response = Http::asForm()->post($endpoint, $data);
         $result = json_decode($response->body(), true);
 
-        // 🔹 Log phản hồi để kiểm tra
         Log::info("ZaloPay Response:", $result);
 
         return $result;
@@ -763,35 +545,90 @@ public function handleVNPayReturn(Request $request)
 //   -H "Content-Type: application/json" \
 //   -d '{"app_trans_id":"250322_1742636526","mac":"...","data":"{\"status\":1}"}'
 
+public function checkZaloPayStatus(Request $request)
+{
+    $appTransId = $request->query('app_trans_id');
+    $appId = env('ZALOPAY_APP_ID');
+    $key1 = env('ZALOPAY_KEY1');
+
+    $params = [
+        'app_id' => $appId,
+        'app_trans_id' => $appTransId,
+    ];
+
+    $dataToHash = $appId . "|" . $appTransId . "|" . $key1;
+    $params['mac'] = hash_hmac("sha256", $dataToHash, $key1);
+
+    $response = Http::asForm()->post("https://sb-openapi.zalopay.vn/v2/query", $params);
+    $result = json_decode($response->body(), true);
+
+    Log::info("ZaloPay QUERY result:", $result);
+
+    if ($result['return_code'] == 1 && $result['return_message'] == "Giao dịch thành công") {
+        $order = Order::where('code', $appTransId)->first();
+
+        if (!$order) {
+            Log::error("Không tìm thấy đơn hàng với mã:", ['code' => $appTransId]);
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Không tìm thấy đơn hàng để cập nhật!',
+            ], 404);
+        }
+
+        // Cập nhật đơn hàng
+        if ($order->paymentStatus !== 'paid') {
+            $order->update([
+                'paymentStatus' => 'paid',
+                'status' => 'pending',
+            ]);
+            if ($order->voucherId) {
+                Voucher::where('id', $order->voucherId)->increment('numberOfUses');
+                // Log::info("Đã cập nhật lượt sử dụng voucher ID: " . $order->voucherId);
+            }
+            Cart::where('userId', $order->userId)->delete();
+            // Log::info("Đã cập nhật trạng thái đơn hàng:", ['orderId' => $order->id]);
+        }
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Giao dịch thành công!',
+            'orderId' => $order->id
+        ]);
+    }
+
+    return response()->json([
+        'code' => 'error',
+        'message' => 'Giao dịch thất bại hoặc chưa hoàn tất!',
+        'result' => $result
+    ], 400);
+}
+
+
 
 
     // trạng thái đơn hàng thanh toán zalo
     public function getOrderStatus(Request $request, $orderId)
     {
-        $order = Order::find($orderId);
+        // $order = Order::find($orderId);
 
-        Log::info("🔍 Kiểm tra trạng thái đơn hàng", ["orderId gửi lên" => $orderId]);
-
-        // ✅ Chỉ tìm theo `code`, vì `orderId` từ ZaloPay là `app_trans_id`
-        // $order = DB::table('orders')->where('code', $orderId)->first();
-
-        // if (!$order) {
-        //     Log::error("⚠️ Không tìm thấy đơn hàng với mã:", ["orderId" => $orderId]);
-        //     return response()->json(["message" => "Không tìm thấy đơn hàng!"], 404);
-        // }
+        Log::info(" Kiểm tra trạng thái đơn hàng", ["orderId gửi lên" => $orderId]);
+        $order = Order::where('id', $request->orderId)->first();
         if (!$order) {
-            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+            return response()->json([
+                'code' => 'error', 
+                'message' => 'Không tìm thấy đơn hàng.'
+            ], 404);
         }
 
-        Log::info("✅ Đơn hàng tìm thấy", [
+        Log::info(" Đơn hàng tìm thấy", [
             "orderId" => $order->id,
             "paymentStatus" => $order->paymentStatus
         ]);
 
         return response()->json([
+            'code' => 'success',
             'paymentStatus' => $order->paymentStatus,
-            'status' => $order->status,
-            'code' => $order->code,
+            'order' => $order
         ]);
     }
 

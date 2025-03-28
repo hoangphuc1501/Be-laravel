@@ -23,6 +23,7 @@ use App\Http\Controllers\admin\ReviewController;
 use App\Http\Controllers\admin\RolePermissionController;
 use App\Http\Controllers\admin\UserController;
 use App\Http\Controllers\admin\VoucherController;
+use App\Http\Controllers\client\ClientNewsController;
 use App\Http\Controllers\client\ClientProductController;
 use App\Http\Controllers\client\CommentController;
 use App\Http\Controllers\client\FavoriteController;
@@ -210,6 +211,13 @@ Route::get('/categoryParent', [ClientProductController::class, 'categoryParent']
 Route::get('/categories', [ClientProductController::class, 'getCategories']);
 Route::get('/brands', [ClientProductController::class, 'getBrands']);
 
+// api bài viết
+Route::get('/news', [ClientNewsController::class, 'index']);
+Route::get('/news/{slug}', [ClientNewsController::class, 'detail']);
+Route::get('/newsCategory/{slug}', [ClientNewsController::class, 'getNewsByCategory']);
+Route::get('/newsFeature', [ClientNewsController::class, 'featuredNews']);
+Route::get('/newsCategory', [ClientNewsController::class, 'categoryNews']);
+Route::get('/newsHomePage', [ClientNewsController::class, 'newsHomePage']);
 
 // cần xác thực
 Route::middleware(['jwt.auth'])->group(function () {
@@ -230,6 +238,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/orders', [ClientOrderController::class, 'index']);
     Route::post('/order/{orderId}/cancel', [ClientOrderController::class, 'cancelOrder']);
     Route::get('/order/status', [ClientOrderController::class, 'getOrderStatus']);
+    Route::get('/zalopay/check-status', [ClientOrderController::class, 'checkZaloPayStatus']);
+
 
 
     // api đánh giá
