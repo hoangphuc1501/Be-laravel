@@ -419,14 +419,13 @@ class ProductController extends Controller
 
         // Tìm sản phẩm cần cập nhật
         $product = Products::find($id);
-        $this->authorize('update', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
                 'message' => 'Sản phẩm không tồn tại.'
             ], 404);
         }
-
+        $this->authorize('update', $product);
         $position = $request->has('position') ? $request->position : $product->position;
         $slug = $product->title !== $request->input('title')
             ? generateUniqueSlug($request->input('title'), Products::class)
@@ -491,7 +490,6 @@ class ProductController extends Controller
                 }
             }
         }
-
         return response()->json([
             'code' => 'success',
             'message' => 'Cập nhật sản phẩm thành công.',
@@ -517,7 +515,7 @@ class ProductController extends Controller
                         'images' => $variant->images->map(function ($img) {
                             return ['image' => $img->image];
                         }),
-                        // ✅ Thêm đầy đủ dữ liệu variation_options cho React
+                        // Thêm đầy đủ dữ liệu variation_options cho React
                         'variation_options' => $variant->variationOptions->map(function ($opt) {
                             return [
                                 'sizeId' => $opt->sizeId,

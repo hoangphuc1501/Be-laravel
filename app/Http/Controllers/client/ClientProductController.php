@@ -325,8 +325,8 @@ class ClientProductController extends Controller
             'reviews',
             'variants' => function ($query) {
                 $query->select('id', 'ProductID', 'price', 'specialPrice', 'discount')
-                      ->with(['images:id,productVariantID,image'])
-                      ->orderBy('price', 'ASC');
+                    ->with(['images:id,productVariantID,image'])
+                    ->orderBy('price', 'ASC');
             }
         ])
         ->select('id', 'title', 'slug', 'position')
@@ -366,12 +366,12 @@ class ClientProductController extends Controller
             $products = Products::select('id', 'title', 'slug', 'position')
                 ->where('deleted', false)
                 ->where('status', 1)
-                ->orderBy('createdAt', 'desc')
                 ->with([
                     'category:id,name',
                     'variants' => function ($query) {
                         $query->select('id', 'ProductID', 'price', 'specialPrice', 'discount')
                             ->with(['images:id,productVariantID,image'])
+                            ->orderBy('discount', 'desc')
                             ->orderBy('price', 'ASC');
                     }
                 ])
