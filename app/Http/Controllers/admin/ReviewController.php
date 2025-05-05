@@ -92,6 +92,8 @@ class ReviewController extends Controller
     // danh sách đánh giá trong admin
     public function getAllReviews(Request $request)
 {
+    // phân quyền
+    $this->authorize('viewAny', Review::class);
     $perPage = $request->input('per_page', 10);
     $search = $request->input('search');
 
@@ -124,7 +126,8 @@ public function deleteReviewAdmin($id)
 {
     // Tìm đánh giá theo ID
     $review = Review::find($id);
-
+// phân quyền
+$this->authorize('delete', $review);
     // Kiểm tra xem đánh giá có tồn tại không
     if (!$review) {
         return response()->json([

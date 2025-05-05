@@ -62,16 +62,31 @@ class UserClient extends Authenticatable implements JWTSubject
     {
         return $this->roles()->where('name', $roleName)->exists();
     }
-    public function hasPermission($permission)
+    // public function hasPermission($permission)
+    // {
+    //     return $this->permissions()->where('slug', $permission)->select('name', 'slug')->first();
+    // }
+    // public function permissions()
+    // {
+    //     return $this->belongsToMany(Permission::class, 'rolepermissions', 'roleId', 'permissionId')
+    //         ->wherePivot('roleId', $this->roleId);
+    // }
+    public function hasPermission($permission): bool
     {
-        return $this->permissions()->where('slug', $permission)->select('name', 'slug')->first();
+        return $this->permissions()->where('slug', $permission)->exists();
     }
     public function permissions()
     {
-        return $this->belongsToMany(Permission::class, 'rolepermissions', 'roleId', 'permissionId')
-            ->wherePivot('roleId', $this->roleId);
+        return Permission::whereIn('id', function ($query) {
+            $query->select('permissionId')
+                ->from('rolepermissions')
+                ->whereIn('roleId', $this->roles()->pluck('roles.id'));
+        });
     }
-
+    public function getPermissionSlugsAttribute()
+    {
+        return $this->permissions()->pluck('slug');
+    }
     public $timestamps = true;
     const CREATED_AT = 'createdAt';
     const UPDATED_AT = 'updatedAt';

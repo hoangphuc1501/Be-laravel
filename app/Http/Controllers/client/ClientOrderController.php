@@ -353,7 +353,7 @@ class ClientOrderController extends Controller
                     'message' => 'Người dùng chưa đăng nhập!'
                 ], 401);
             }
-            Log::info("Dữ liệu nhận từ Frontend:", $request->all());
+            // Log::info("Dữ liệu nhận từ Frontend:", $request->all());
             if (!$request->input('shippingAddress')) {
                 return response()->json([
                     'code' => 'error',
@@ -440,11 +440,11 @@ class ClientOrderController extends Controller
                     'updatedAt' => now(),
                 ]);
             }
-            Log::info(" Đã lưu orderitems cho đơn hàng #{$order->id}");
+            // Log::info(" Đã lưu orderitems cho đơn hàng #{$order->id}");
             // Nếu chọn ZaloPay, gọi API thanh toán
             if ($isZaloPay) {
                 $zalopayResponse = $this->createZaloPayPayment($orderCode, $totalPrice);
-                Log::info("🔹 Phản hồi từ ZaloPay:", ['response' => $zalopayResponse]);
+                // Log::info("Phản hồi từ ZaloPay:", ['response' => $zalopayResponse]);
 
                 if ($zalopayResponse['return_code'] != 1) {
                     Log::warning("Thanh toán ZaloPay thất bại", ['error' => $zalopayResponse['return_message']]);
@@ -467,7 +467,7 @@ class ClientOrderController extends Controller
                     Voucher::where('id', $voucherId)->increment('numberOfUses');
                 }
 
-                // Nếu là COD, xóa giỏ hàng ngay lập tức
+                // Nếu là COD xóa giỏ hàng ngay lập tức
                 Cart::where('userId', $user->id)->delete();
             }
 
@@ -484,7 +484,7 @@ class ClientOrderController extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error(" Lỗi khi tạo đơn hàng", ['error' => $e->getMessage()]);
+            // Log::error(" Lỗi khi tạo đơn hàng", ['error' => $e->getMessage()]);
             return response()->json([
                 'code' => 'error',
                 'message' => 'Lỗi server, vui lòng thử lại!',
@@ -517,7 +517,7 @@ class ClientOrderController extends Controller
             ]),
             "bank_code" => ""
         ];
-        Log::info(" ZaloPay Payload gửi đi", ['payload' => $data]);
+        // Log::info(" ZaloPay Payload gửi đi", ['payload' => $data]);
 
         $dataToHash = implode("|", [
             $data["app_id"],
@@ -534,7 +534,7 @@ class ClientOrderController extends Controller
         $response = Http::asForm()->post($endpoint, $data);
         $result = json_decode($response->body(), true);
 
-        Log::info("ZaloPay Response:", $result);
+        // Log::info("ZaloPay Response:", $result);
 
         return $result;
     }
@@ -611,7 +611,7 @@ public function checkZaloPayStatus(Request $request)
     {
         // $order = Order::find($orderId);
 
-        Log::info(" Kiểm tra trạng thái đơn hàng", ["orderId gửi lên" => $orderId]);
+        // Log::info(" Kiểm tra trạng thái đơn hàng", ["orderId gửi lên" => $orderId]);
         $order = Order::where('id', $request->orderId)->first();
         if (!$order) {
             return response()->json([

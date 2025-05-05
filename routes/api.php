@@ -23,6 +23,7 @@ use App\Http\Controllers\admin\ReviewController;
 use App\Http\Controllers\admin\RolePermissionController;
 use App\Http\Controllers\admin\UserController;
 use App\Http\Controllers\admin\VoucherController;
+use App\Http\Controllers\client\ClientContactController;
 use App\Http\Controllers\client\ClientNewsController;
 use App\Http\Controllers\client\ClientProductController;
 use App\Http\Controllers\client\CommentController;
@@ -126,6 +127,7 @@ Route::prefix('admin')->middleware(['auth:client_api', 'admin'])->group(function
     });
     Route::patch('/users/{id}/status', [UserController::class, 'updateStatus']);
     Route::patch('/users/{id}/position', [UserController::class, 'updatePosition']);
+    Route::get('/getMyPermissions', [PermissionController::class, 'getMyPermissions']);
 
     // api bình luận
     Route::get('/comments', [CommentController::class, 'getAllComments']);
@@ -204,6 +206,7 @@ Route::get('/products/{slug}', [ClientProductController::class, 'showBySlug']);
 Route::get('/products', [ClientProductController::class, 'productList']);
 Route::get('/searchProducts', [ClientProductController::class, 'search']);
 Route::get('/newProduct', [ClientProductController::class, 'newProducts']);
+Route::get('/saleProduct', [ClientProductController::class, 'saleProducts']);
 Route::get('/hotProduct', [ClientProductController::class, 'hotProducts']);
 Route::get('/categories/{slug}', [ClientProductController::class, 'getProductsByCategorySlug']);
 Route::get('/categoryId/{id}', [ClientProductController::class, 'getProductsByCategoryId']);
@@ -275,14 +278,11 @@ Route::middleware(['jwt.auth'])->group(function () {
 });
 // end client
 
-// Route::post('/zalopay/create-payment', [ZaloPayController::class, 'createPayment']);
-// Route::post('/zalopay/callback', [ZaloPayController::class, 'callback']);
 Route::post('/zalopay/create-payment', [ClientOrderController::class, 'createPayment']);
 Route::post('/zalopay/callback', [ZaloPayController::class, 'callback']);
 Route::post('/vnpay/create-payment', [VNPayController::class, 'createPayment']);
 Route::get('/vnpay/return', [VNPayController::class, 'paymentReturn'])->name('vnpay.return');
 
-
-// Route::post('/zalopay/simulate', [ZaloPayController::class, 'simulatePayment']);
+Route::post('/contact', [ClientContactController::class, 'store']);
 
 

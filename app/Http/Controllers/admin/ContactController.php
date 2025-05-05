@@ -10,6 +10,8 @@ class ContactController extends Controller
 {
     public function index(Request $request)
     {
+        // phân quyền
+        $this->authorize('viewAny', Contact::class);
         $perPage = $request->input('per_page', 10);
         $search = $request->input('search');
         $sort = $request->input('sort', 'position-desc');
@@ -57,7 +59,8 @@ class ContactController extends Controller
     public function destroy($id)
     {
         $contact = Contact::find($id);
-
+        // phân quyền
+        $this->authorize('delete', $contact);
         if (!$contact) {
             return response()->json([
                 'code' => 'error',

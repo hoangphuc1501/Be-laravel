@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Brand;
 use App\Models\User;
+use App\Models\UserClient;
 use Illuminate\Auth\Access\Response;
 
 class BrandPolicy
@@ -11,56 +12,37 @@ class BrandPolicy
     /**
      * Determine whether the user can view any models.
      */
-    public function viewAny(User $user): bool
+    public function viewAny(UserClient $user): bool
+{
+    return $user->hasPermission('view_brand'); 
+}
+
+    public function view(UserClient $user, $brand): bool
     {
-        //
+        return $user->hasPermission('view_brand');
+    }
+    public function create(UserClient $user): bool
+    {
+        return $user->hasPermission('create_brand');
+    }
+    public function update(UserClient $user, $brand): bool
+    {
+        return $user->hasPermission('edit_brand');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Brand $brand): bool
+    public function delete(UserClient $user, $brand): bool
     {
-        //
+        return $user->hasPermission('softDelete_brand');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function restore(UserClient $user, $brand): bool
     {
-        //
+        return $user->hasPermission('restore_brand');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Brand $brand): bool
+    public function forceDelete(UserClient $user, $brand): bool
     {
-        //
+        return $user->hasPermission('delete_brand');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Brand $brand): bool
-    {
-        //
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Brand $brand): bool
-    {
-        //
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Brand $brand): bool
-    {
-        //
-    }
 }

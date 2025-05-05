@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
@@ -16,6 +17,8 @@ class JWTMiddleware
     public function handle(Request $request, Closure $next)
     {
         try {
+            // Log::info('Admin Middleware User:', [auth()->user()]);
+            auth()->shouldUse('client_api');
             // Nếu request không có token, trả về lỗi ngay
             if (!$request->bearerToken()) {
                 return response()->json([

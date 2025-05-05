@@ -12,25 +12,28 @@ class RoleController extends Controller
 {
     // danh sách vai trò
     public function index(Request $request)
-{
-    $perPage = $request->input('per_page', 10); 
+    {
+        // phân quyền
+        $this->authorize('viewAny', Role::class);
+        $perPage = $request->input('per_page', 10);
 
-    $roles = Role::orderBy('createdAt', 'desc')
-    ->paginate($perPage);
+        $roles = Role::orderBy('createdAt', 'desc')
+            ->paginate($perPage);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách vai trò.',
-        'data' => $roles
-    ], 200);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách vai trò.',
+            'data' => $roles
+        ], 200);
+    }
 
     // Lấy thông tin của một vai trò
     public function show($id)
     {
         // $role = Role::find($id);
         $role = Role::with('permissions')->find($id);
-
+        // phân quyền
+        $this->authorize('view', $role);
         if (!$role) {
             return response()->json([
                 'code' => 'error',
@@ -48,8 +51,9 @@ class RoleController extends Controller
     // Thêm mới vai trò
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', Role::class);
         $permissions = Permission::all()->groupBy('module');
-
 
         // Validate dữ liệu
         $validated = $request->validate([
@@ -64,7 +68,7 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
         ]);
-        
+
         // Lưu quyền cho vai trò mới
         foreach ($validated['permissions'] as $permissionId) {
             RolePermission::create([
@@ -85,7 +89,8 @@ class RoleController extends Controller
     {
         // Tìm vai trò
         $role = Role::find($id);
-
+        // phân quyền
+        $this->authorize('update', $role);
         if (!$role) {
             return response()->json([
                 'code' => 'error',
@@ -106,10 +111,10 @@ class RoleController extends Controller
             'description' => $validated['description'] ?? '',
         ]);
 
-         // Nếu có quyền được gửi, cập nhật quyền cho vai trò
-    if (isset($validated['permissions'])) {
-        $role->permissions()->sync($validated['permissions']); 
-    }
+        // Nếu có quyền được gửi, cập nhật quyền cho vai trò
+        if (isset($validated['permissions'])) {
+            $role->permissions()->sync($validated['permissions']);
+        }
 
         return response()->json([
             'code' => 'success',
@@ -123,7 +128,8 @@ class RoleController extends Controller
     {
         // Tìm vai trò
         $role = Role::find($id);
-
+        // phân quyền
+        $this->authorize('delete', $role);
         if (!$role) {
             return response()->json([
                 'code' => 'error',

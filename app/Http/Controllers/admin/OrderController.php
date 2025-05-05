@@ -10,7 +10,8 @@ class OrderController extends Controller
     // danh sách đơn hàng
     public function index(Request $request)
     {
-
+// phân quyền
+$this->authorize('viewAny', Order::class);
         $orders = Order::with('user')
             ->orderBy('createdAt', 'desc')
             ->paginate(10);
@@ -38,6 +39,8 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         $order = Order::findOrFail($id);
+         // phân quyền
+         $this->authorize('update', $order);
         $currentStatus = $order->status;
         $newStatus = $request->status;
     
@@ -79,7 +82,7 @@ class OrderController extends Controller
             $order = Order::where('id', $orderId)
                 ->with([
                     'user', // Thông tin khách hàng
-                    'orderItems.productVariant.product',
+                    'orderItems.productVariant.product', 
                     'orderItems.productVariant.variationOptions.color',
                     'orderItems.productVariant.variationOptions.size',
                     'orderItems.productVariant.images'

@@ -42,6 +42,7 @@ class ProductCategoryController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', ProductCategory::class);
         $perPage = $request->input('per_page', 10);
         $status = $request->input('status');
         $search = $request->input('search');
@@ -104,7 +105,7 @@ class ProductCategoryController extends Controller
 
     public function store(Request $request)
     {
-
+        $this->authorize('create', ProductCategory::class);
         // Kiểm tra dữ liệu hợp lệ trước khi lưu
         $request->validate([
             'name' => 'required|string|max:255',
@@ -147,6 +148,7 @@ class ProductCategoryController extends Controller
     public function show(string $id)
     {
         $category = ProductCategory::find($id);
+        $this->authorize('view', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -166,6 +168,7 @@ class ProductCategoryController extends Controller
     public function update(Request $request, string $id, ProductCategory $category)
     {
         $category = ProductCategory::find($id);
+        $this->authorize('update', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -227,6 +230,7 @@ class ProductCategoryController extends Controller
     public function destroy(string $id)
     {
         $category = ProductCategory::find($id);
+        $this->authorize('forceDelete', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -246,7 +250,7 @@ class ProductCategoryController extends Controller
     public function softDelete(string $id)
     {
         $category = ProductCategory::where('deleted', false)->find($id);
-
+        $this->authorize('delete', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -266,7 +270,7 @@ class ProductCategoryController extends Controller
     public function restore(string $id)
     {
         $category = ProductCategory::where('deleted', true)->find($id);
-
+        $this->authorize('restore', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -315,6 +319,7 @@ class ProductCategoryController extends Controller
         ]);
 
         $category = ProductCategory::find($id);
+        $this->authorize('update', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -340,7 +345,7 @@ class ProductCategoryController extends Controller
         ]);
 
         $category = ProductCategory::where('deleted', false)->find($id);
-
+        $this->authorize('update', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',

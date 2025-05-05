@@ -31,6 +31,10 @@ class Products extends Model
     {
         return $this->belongsTo(ProductCategory::class, 'categoriesID');
     }
+    public function reviews()
+{
+    return $this->hasMany(Review::class, 'productId');
+}
     public $timestamps = true; 
 
     const CREATED_AT = 'createdAt'; 

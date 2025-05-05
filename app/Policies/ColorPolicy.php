@@ -2,26 +2,27 @@
 
 namespace App\Policies;
 
-use App\Models\Products;
+use App\Models\Color;
+use App\Models\User;
 use App\Models\UserClient;
 use Illuminate\Auth\Access\Response;
 
-class ProductPolicy
+class ColorPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(UserClient $user): bool
     {
-        return $user->hasPermission('view_product');
+        return $user->hasPermission('view_color'); 
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(UserClient $user, Products $product): bool
+    public function view(UserClient $user, Color $color): bool
     {
-        return $user->hasPermission('view_product');
+        return $user->hasPermission('view_color'); 
     }
 
     /**
@@ -29,38 +30,38 @@ class ProductPolicy
      */
     public function create(UserClient $user): bool
     {
-        return $user->hasPermission('create_product');
+        return $user->hasPermission('create_color');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(UserClient $user, Products $product): bool
+    public function update(UserClient $user, Color $color): bool
     {
-        return $user->hasPermission('edit_product');
+        return $user->hasPermission('edit_color');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(UserClient $user, Products $product): bool
+    public function delete(UserClient $user, Color $color): bool
     {
-        return $user->hasPermission('softDelete_product');
+        return $user->hasPermission('softDelete_color');
     }
 
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(UserClient $user, Products $product): bool
+    public function restore(UserClient $user, Color $color): bool
     {
-        return $user->hasPermission('restore_product');
+        return $user->hasPermission('restore_color');
     }
 
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(UserClient $user, Products $product): bool
+    public function forceDelete(UserClient $user, Color $color): bool
     {
-        return $user->hasPermission('delete_product');
+        return $user->hasPermission('delete_color');
     }
 }

@@ -12,54 +12,57 @@ class ColorController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-{
-    $perPage = $request->input('per_page', 10);
-    $status = $request->input('status');
-    $search = $request->input('search');
-    $sort = $request->input('sort');
+    {
+        // phân quyền
+        $this->authorize('viewAny', Color::class);
 
-    $query = Color::select('id', 'name', 'status', 'position')
-        ->where('deleted', false);
+        $perPage = $request->input('per_page', 10);
+        $status = $request->input('status');
+        $search = $request->input('search');
+        $sort = $request->input('sort');
 
-    // Lọc theo trạng thái
-    if ($status === 'active') {
-        $query->where('status', 1);
-    } elseif ($status === 'inactive') {
-        $query->where('status', 0);
+        $query = Color::select('id', 'name', 'status', 'position')
+            ->where('deleted', false);
+
+        // Lọc theo trạng thái
+        if ($status === 'active') {
+            $query->where('status', 1);
+        } elseif ($status === 'inactive') {
+            $query->where('status', 0);
+        }
+
+        // Tìm kiếm theo tên
+        if (!empty($search)) {
+            $query->where('name', 'like', "%$search%");
+        }
+
+        // Sắp xếp
+        switch ($sort) {
+            case 'position-asc':
+                $query->orderBy('position', 'asc');
+                break;
+            case 'position-desc':
+                $query->orderBy('position', 'desc');
+                break;
+            case 'title-asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'title-desc':
+                $query->orderBy('name', 'desc');
+                break;
+            default:
+                $query->orderBy('position', 'desc');
+                break;
+        }
+
+        $colors = $query->paginate($perPage);
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách màu sắc.',
+            'data' => $colors
+        ], 200);
     }
-
-    // Tìm kiếm theo tên
-    if (!empty($search)) {
-        $query->where('name', 'like', "%$search%");
-    }
-
-    // Sắp xếp
-    switch ($sort) {
-        case 'position-asc':
-            $query->orderBy('position', 'asc');
-            break;
-        case 'position-desc':
-            $query->orderBy('position', 'desc');
-            break;
-        case 'title-asc':
-            $query->orderBy('name', 'asc');
-            break;
-        case 'title-desc':
-            $query->orderBy('name', 'desc');
-            break;
-        default:
-            $query->orderBy('position', 'desc');
-            break;
-    }
-
-    $colors = $query->paginate($perPage);
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách màu sắc.',
-        'data' => $colors
-    ], 200);
-}
 
 
     /**
@@ -67,6 +70,9 @@ class ColorController extends Controller
      */
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', Color::class);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'status' => 'nullable|integer|in:0,1',
@@ -96,6 +102,8 @@ class ColorController extends Controller
     public function show(string $id)
     {
         $color = Color::find($id);
+        // phân quyền
+        $this->authorize('view', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
@@ -115,6 +123,8 @@ class ColorController extends Controller
     public function update(Request $request, string $id)
     {
         $color = Color::find($id);
+        // phân quyền
+        $this->authorize('update', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
@@ -136,10 +146,10 @@ class ColorController extends Controller
             ]
         ));
 
-          // Nếu có thay đổi, mới lưu
-            if ($color->isDirty()) {
-                $color->save();
-            }
+        // Nếu có thay đổi, mới lưu
+        if ($color->isDirty()) {
+            $color->save();
+        }
 
         return response()->json([
             'code' => 'success',
@@ -155,6 +165,8 @@ class ColorController extends Controller
     public function destroy(string $id)
     {
         $color = Color::find($id);
+        // phân quyền
+        $this->authorize('forceDelete', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
@@ -173,16 +185,18 @@ class ColorController extends Controller
     public function softDelete(string $id)
     {
         $color = Color::where('deleted', false)->find($id);
+        // phân quyền
+        $this->authorize('delete', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
                 'message' => 'Màu sắc không tồn tại.'
             ], 404);
         }
-    
+
         // Xóa mềm
         $color->update(['deleted' => true]);
-    
+
         return response()->json([
             'code' => 'success',
             'message' => 'Xóa màu sắc thành công.',
@@ -191,8 +205,10 @@ class ColorController extends Controller
 
 
     public function restore(string $id)
-{
-    $color = Color::where('deleted', true)->find($id);
+    {
+        $color = Color::where('deleted', true)->find($id);
+        // phân quyền
+        $this->authorize('restore', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
@@ -200,32 +216,32 @@ class ColorController extends Controller
             ], 404);
         }
 
-    // Khôi phục danh mục
-    $color->update(['deleted' => false]);
+        // Khôi phục danh mục
+        $color->update(['deleted' => false]);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Khôi phục màu sắc thành công.',
-    ], 200);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Khôi phục màu sắc thành công.',
+        ], 200);
+    }
 
-// list nopage
+    // list nopage
 
-public function listColor()
-{
-    // $perPage = $request->input('per_page', 10);
-    $colors = Color::select('id', 'name', 'status', 'position')
-        ->where('deleted', false)
-        ->orderBy('position', 'desc')
-        // ->paginate($perPage);
-        ->get();
+    public function listColor()
+    {
+        // $perPage = $request->input('per_page', 10);
+        $colors = Color::select('id', 'name', 'status', 'position')
+            ->where('deleted', false)
+            ->orderBy('position', 'desc')
+            // ->paginate($perPage);
+            ->get();
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách màu sắc.',
-        'data' => $colors
-    ], 200);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách màu sắc.',
+            'data' => $colors
+        ], 200);
+    }
 
     // cập nhật trạng thái
     public function updateStatus(Request $request, $id)
@@ -235,6 +251,8 @@ public function listColor()
         ]);
 
         $color = Color::find($id);
+        // phân quyền
+        $this->authorize('update', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
@@ -260,7 +278,8 @@ public function listColor()
         ]);
 
         $color = Color::where('deleted', false)->find($id);
-
+        // phân quyền
+        $this->authorize('update', $color);
         if (!$color) {
             return response()->json([
                 'code' => 'error',
@@ -279,18 +298,18 @@ public function listColor()
     }
 
     public function TrashColor(Request $request)
-{
-    $perPage = $request->input('per_page', 10);
+    {
+        $perPage = $request->input('per_page', 10);
 
-    $colors = Color::select('id', 'name', 'status', 'position')
-        ->where('deleted', true)
-        ->orderBy('position', 'desc')
-        ->paginate($perPage);
+        $colors = Color::select('id', 'name', 'status', 'position')
+            ->where('deleted', true)
+            ->orderBy('position', 'desc')
+            ->paginate($perPage);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách màu sắc.',
-        'data' => $colors
-    ], 200);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách màu sắc.',
+            'data' => $colors
+        ], 200);
+    }
 }

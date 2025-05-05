@@ -38,6 +38,9 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
+        // phân quyền
+        $this->authorize('viewAny', UserClient::class);
+
         $perPage = $request->input('per_page', 10);
         $status = $request->input('status');
         $search = $request->input('search');
@@ -109,7 +112,8 @@ class UserController extends Controller
     public function show($id)
     {
         $user = UserClient::with('roles')->find($id);
-
+        // phân quyền
+        $this->authorize('view', $user);
         if (!$user || $user->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -140,6 +144,9 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', UserClient::class);
+
         // Kiểm tra xem email đã tồn tại chưa
         if (UserClient::where('email', $request->email)->exists()) {
             return response()->json([
@@ -213,6 +220,8 @@ class UserController extends Controller
     {
         // Kiểm tra xem người dùng có tồn tại không
         $user = UserClient::find($id);
+        // phân quyền
+        $this->authorize('update', $user);
         if (!$user) {
             return response()->json([
                 'code' => 'error',
@@ -274,7 +283,8 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = UserClient::find($id);
-
+        // phân quyền
+        $this->authorize('forceDelete', $user);
         if (!$user) {
             return response()->json([
                 'code' => 'error',
@@ -294,7 +304,8 @@ class UserController extends Controller
     public function softDelete($id)
     {
         $user = UserClient::find($id);
-
+        // phân quyền
+        $this->authorize('delete', $user);
         if (!$user || $user->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -317,7 +328,8 @@ class UserController extends Controller
     public function restore($id)
     {
         $user = UserClient::find($id);
-
+        // phân quyền
+        $this->authorize('restore', $user);
         if (!$user || !$user->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -344,6 +356,8 @@ class UserController extends Controller
         ]);
 
         $user = UserClient::find($id);
+        // phân quyền
+        $this->authorize('update', $user);
         if (!$user) {
             return response()->json([
                 'code' => 'error',
@@ -369,7 +383,8 @@ class UserController extends Controller
         ]);
 
         $user = UserClient::where('deleted', false)->find($id);
-
+        // phân quyền
+        $this->authorize('update', $user);
         if (!$user) {
             return response()->json([
                 'code' => 'error',

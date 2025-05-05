@@ -12,10 +12,10 @@ class CategoryPolicy
     /**
      * Determine whether the user can view any models.
      */
-    // public function viewAny(User $user): bool
-    // {
-    //     //
-    // }
+    public function viewAny(UserClient $user): bool
+    {
+        return $user->hasPermission('view_productCategory');
+    }
 
     /**
      * Determine whether the user can view the model.

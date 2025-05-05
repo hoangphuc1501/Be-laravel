@@ -13,6 +13,9 @@ class VoucherController extends Controller
     // danh sách voucher
     public function index(Request $request)
     {
+        // phân quyền
+        $this->authorize('viewAny', Voucher::class);
+
         $perPage = $request->input('per_page', 10);
         $search = $request->input('search');
         $status = $request->input('status');
@@ -78,6 +81,8 @@ class VoucherController extends Controller
     // thêm mới voucher
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', Voucher::class);
         $request->validate([
             'name' => 'required|string',
             'code' => 'required|string|max:100|unique:vouchers,code',
@@ -121,7 +126,8 @@ class VoucherController extends Controller
     public function show($id)
     {
         $voucher = Voucher::find($id);
-
+// phân quyền
+$this->authorize('view', $voucher);
         if (!$voucher || $voucher->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -140,7 +146,8 @@ class VoucherController extends Controller
     public function update(Request $request, $id)
     {
         $voucher = Voucher::find($id);
-
+// phân quyền
+$this->authorize('update', $voucher);
         if (!$voucher || $voucher->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -176,7 +183,8 @@ class VoucherController extends Controller
     public function destroy($id)
     {
         $voucher = Voucher::find($id);
-
+// phân quyền
+$this->authorize('forceDelete', $voucher);
         if (!$voucher || !$voucher->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -196,7 +204,8 @@ class VoucherController extends Controller
     public function softDelete($id)
     {
         $voucher = Voucher::find($id);
-
+// phân quyền
+$this->authorize('delete', $voucher);
         if (!$voucher || $voucher->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -220,7 +229,8 @@ class VoucherController extends Controller
     public function restore($id)
     {
         $voucher = Voucher::find($id);
-
+ // phân quyền
+ $this->authorize('restore', $voucher);
         if (!$voucher || !$voucher->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -248,6 +258,8 @@ class VoucherController extends Controller
         ]);
 
         $voucher = Voucher::find($id);
+        // phân quyền
+        $this->authorize('update', $voucher);
         if (!$voucher) {
             return response()->json([
                 'code' => 'error',

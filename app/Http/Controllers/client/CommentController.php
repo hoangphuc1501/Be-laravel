@@ -65,7 +65,8 @@ class CommentController extends Controller
     // Lấy danh sách tất cả bình luận trong admin
     public function getAllComments(Request $request)
     {
-
+        // phân quyền
+        $this->authorize('viewAny', Comment::class);
         $perPage = $request->input('per_page', 10);
         $search = $request->input('search');
 
@@ -96,7 +97,8 @@ class CommentController extends Controller
     {
         // Tìm bình luận theo ID
         $comment = Comment::find($id);
-
+        // phân quyền
+        $this->authorize('delete', $comment);
         // Kiểm tra xem bình luận có tồn tại không
         if (!$comment) {
             return response()->json([

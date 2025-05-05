@@ -11,7 +11,9 @@ class BrandController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
+    { 
+
+        $this->authorize('viewAny', Brands::class);
         $perPage = $request->input('per_page', 10);
         $status = $request->input('status');
         $search = $request->input('search');
@@ -66,7 +68,8 @@ class BrandController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $this->authorize('create', Brands::class);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'image' => 'nullable|string',
@@ -107,6 +110,8 @@ class BrandController extends Controller
     public function show(string $id)
     {
         $brand = Brands::find($id);
+        // phân quyền
+        $this->authorize('view', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',
@@ -129,6 +134,8 @@ class BrandController extends Controller
     {
         // Kiểm tra brand có tồn tại không
         $brand = Brands::find($id);
+        // phân quyền
+        $this->authorize('update', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',
@@ -180,6 +187,8 @@ class BrandController extends Controller
     public function destroy(string $id)
     {
         $brand = Brands::find($id);
+        // phân quyền
+        $this->authorize('forceDelete', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',
@@ -197,7 +206,8 @@ class BrandController extends Controller
     public function softDelete(string $id)
     {
         $brand = Brands::where('deleted', false)->find($id);
-
+        // phân quyền
+        $this->authorize('delete', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',
@@ -217,7 +227,8 @@ class BrandController extends Controller
     public function restore(string $id)
     {
         $brand = Brands::where('deleted', true)->find($id);
-
+        // phân quyền
+        $this->authorize('restore', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',
@@ -266,6 +277,8 @@ class BrandController extends Controller
         ]);
 
         $brand = Brands::find($id);
+        // phân quyền
+        $this->authorize('update', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',
@@ -291,7 +304,7 @@ class BrandController extends Controller
         ]);
 
         $brand = Brands::where('deleted', false)->find($id);
-
+        $this->authorize('update', $brand);
         if (!$brand) {
             return response()->json([
                 'code' => 'error',

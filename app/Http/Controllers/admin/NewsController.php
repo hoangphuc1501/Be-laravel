@@ -12,6 +12,9 @@ class NewsController extends Controller
 
     public function index(Request $request)
     {
+
+        // phân quyền
+        $this->authorize('viewAny', News::class);
         $perPage = $request->input('per_page', 10);
         $status = $request->input('status');
         $search = $request->input('search');
@@ -75,6 +78,8 @@ class NewsController extends Controller
 
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', News::class);
         // Kiểm tra và xác thực dữ liệu đầu vào
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -118,7 +123,8 @@ class NewsController extends Controller
     public function show($id)
     {
         $news = News::with('category')->find($id);
-
+        // phân quyền
+        $this->authorize('view', $news);
         if (!$news || $news->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -135,6 +141,8 @@ class NewsController extends Controller
     {
         // Tìm tin tức theo id
         $news = News::find($id);
+        // phân quyền
+        $this->authorize('update', $news);
         if (!$news || $news->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -183,6 +191,8 @@ class NewsController extends Controller
     public function destroy($id)
     {
         $news = News::find($id);
+        // phân quyền
+        $this->authorize('forceDelete', $news);
         if (!$news) {
             return response()->json([
                 'code' => 'error',
@@ -201,7 +211,8 @@ class NewsController extends Controller
     public function softDelete($id)
     {
         $news = News::find($id);
-
+        // phân quyền
+        $this->authorize('delete', $news);
         if (!$news || $news->deleted) {
             return response()->json([
                 'code' => 'error',
@@ -219,7 +230,8 @@ class NewsController extends Controller
     public function restore($id)
     {
         $news = News::where('deleted', true)->find($id);
-
+        // phân quyền
+        $this->authorize('restore', $news);
         if (!$news) {
             return response()->json([
                 'code' => 'error',
@@ -257,6 +269,8 @@ class NewsController extends Controller
         ]);
 
         $news = News::find($id);
+        // phân quyền
+        $this->authorize('update', $news);
         if (!$news) {
             return response()->json([
                 'code' => 'error',
@@ -282,6 +296,8 @@ class NewsController extends Controller
         ]);
 
         $news = News::find($id);
+        // phân quyền
+        $this->authorize('update', $news);
         if (!$news) {
             return response()->json([
                 'code' => 'error',
@@ -301,29 +317,30 @@ class NewsController extends Controller
 
     // thay đổi vị trí
     public function updatePosition(Request $request, $id)
-{
-    $request->validate([
-        'position' => 'required|integer|min:1',
-    ]);
+    {
+        $request->validate([
+            'position' => 'required|integer|min:1',
+        ]);
 
-    $news = News::where('deleted', false)->find($id);
+        $news = News::where('deleted', false)->find($id);
+        // phân quyền
+        $this->authorize('update', $news);
+        if (!$news) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Bài viết không tồn tại.',
+            ], 404);
+        }
 
-    if (!$news) {
+        $news->position = $request->position;
+        $news->save();
+
         return response()->json([
-            'code' => 'error',
-            'message' => 'Bài viết không tồn tại.',
-        ], 404);
+            'code' => 'success',
+            'message' => 'Cập nhật vị trí thành công.',
+            'data' => $news
+        ]);
     }
-
-    $news->position = $request->position;
-    $news->save();
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Cập nhật vị trí thành công.',
-        'data' => $news
-    ]);
-}
     public function trashNews(Request $request)
     {
         $perPage = $request->input('per_page', 10);

@@ -38,6 +38,10 @@ class NewsCategoryController extends Controller
 
     public function index(Request $request)
     {
+
+        // phân quyền
+        $this->authorize('viewAny', NewsCategory::class);
+
         $perPage = $request->input('per_page', 10);
         $status = $request->input('status');
         $search = $request->input('search');
@@ -100,6 +104,9 @@ class NewsCategoryController extends Controller
 
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', NewsCategory::class);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'image' => 'nullable|string',
@@ -133,6 +140,8 @@ class NewsCategoryController extends Controller
     public function show(string $id)
     {
         $category = NewsCategory::find($id);
+        // phân quyền
+        $this->authorize('view', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -149,6 +158,8 @@ class NewsCategoryController extends Controller
     {
         // Tìm tin tức theo id
         $category = NewsCategory::find($id);
+        // phân quyền
+        $this->authorize('update', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -191,6 +202,8 @@ class NewsCategoryController extends Controller
     public function destroy($id)
     {
         $category = NewsCategory::find($id);
+        // phân quyền
+        $this->authorize('forceDelete', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -210,6 +223,8 @@ class NewsCategoryController extends Controller
     public function softDelete($id)
     {
         $category = NewsCategory::where('deleted', false)->find($id);
+        // phân quyền
+        $this->authorize('delete', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -229,6 +244,8 @@ class NewsCategoryController extends Controller
     public function restore($id)
     {
         $category = NewsCategory::where('deleted', true)->find($id);
+        // phân quyền
+        $this->authorize('restore', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -266,21 +283,23 @@ class NewsCategoryController extends Controller
             'status' => 'required|boolean',
         ]);
 
-        $news = NewsCategory::find($id);
-        if (!$news) {
+        $category = NewsCategory::find($id);
+        // phân quyền
+        $this->authorize('update', $category);
+        if (!$category) {
             return response()->json([
                 'code' => 'error',
                 'message' => 'Danh mục bài viết không tồn tại!'
             ], 404);
         }
 
-        $news->status = $request->status;
-        $news->save();
+        $category->status = $request->status;
+        $category->save();
 
         return response()->json([
             'code' => 'success',
             'message' => 'Cập nhật trạng thái thành công.',
-            'data' => $news
+            'data' => $category
         ]);
     }
 
@@ -292,7 +311,8 @@ class NewsCategoryController extends Controller
         ]);
 
         $category = NewsCategory::where('deleted', false)->find($id);
-
+        // phân quyền
+        $this->authorize('update', $category);
         if (!$category) {
             return response()->json([
                 'code' => 'error',
@@ -311,10 +331,10 @@ class NewsCategoryController extends Controller
     }
 
     public function trashNewsCategory(Request $request)
-{
-    $perPage = $request->input('per_page', 10);
+    {
+        $perPage = $request->input('per_page', 10);
 
-    $categories = NewsCategory::select(
+        $categories = NewsCategory::select(
             'newscategories.id',
             'newscategories.name',
             'newscategories.image',
@@ -325,16 +345,16 @@ class NewsCategoryController extends Controller
             'newscategories.slug',
             'parent.name as parentName'
         )
-        ->leftJoin('newscategories as parent', 'newscategories.parentID', '=', 'parent.id')
-        ->where('newscategories.deleted', true)
-        ->orderBy('newscategories.position', 'desc')
-        ->paginate($perPage);
+            ->leftJoin('newscategories as parent', 'newscategories.parentID', '=', 'parent.id')
+            ->where('newscategories.deleted', true)
+            ->orderBy('newscategories.position', 'desc')
+            ->paginate($perPage);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách danh mục bài viết.',
-        'data' => $categories
-    ]);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách danh mục bài viết.',
+            'data' => $categories
+        ]);
+    }
 
 }

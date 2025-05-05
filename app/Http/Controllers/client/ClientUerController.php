@@ -364,49 +364,45 @@ class ClientUerController extends Controller
     // cập nhật thông tin
     public function updateProfile(Request $request)
     {
-    //     // Kiểm tra nếu user chưa đăng nhập
-    //     $user = Auth::guard('client_api')->user();
-    //     if (!$user) {
-    //         return response()->json(['message' => 'Token không hợp lệ hoặc không có quyền truy cập!'], 401);
-    //     }
+        // Kiểm tra nếu user chưa đăng nhập
+        $user = Auth::guard('client_api')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Token không hợp lệ hoặc không có quyền truy cập!'], 401);
+        }
 
-    //     // Lấy user đang đăng nhập
-    //     $user = Auth::user();
+        // Xác thực dữ liệu đầu vào
+        $validator = Validator::make($request->all(), [
+            'fullname' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'address' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:15',
+            'image' => 'nullable|string',
+            'birthday' => 'nullable|date',
+            'gender' => 'nullable|boolean'
+        ]);
 
-    //     // Xác thực dữ liệu đầu vào
-    //     $validator = Validator::make($request->all(), [
-    //         'fullname' => 'nullable|string|max:255',
-    //         'email' => 'nullable|email|unique:users,email,' . $user->id,
-    //         'address' => 'nullable|string|max:255',
-    //         'phone' => 'nullable|string|max:15',
-    //         'image' => 'nullable|string',
-    //         'birthday' => 'nullable|date',
-    //         'gender' => 'nullable|in:male,female,other'
-    //     ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Dữ liệu không hợp lệ!',
+                'errors' => $validator->errors()
+            ], 400);
+        }
 
-    //     if ($validator->fails()) {
-    //         return response()->json([
-    //             'message' => 'Dữ liệu không hợp lệ!',
-    //             'errors' => $validator->errors()
-    //         ], 400);
-    //     }
-
-    //     try {
-    //         // Cập nhật thông tin người dùng
-            
-    //         $user->fill($request->only(['fullname', 'email', 'address', 'phone', 'image', 'birthday', 'gender']));
-    //         $user->save();
-    //         return response()->json([
-    //             'code' => 'success',
-    //             'message' => 'Cập nhật thông tin người dùng thành công!',
-    //             'user' => $user->fresh()
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'Đã xảy ra lỗi khi cập nhật thông tin người dùng!',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
+        try {
+            // Cập nhật thông tin người dùng
+            $user->fill($request->only(['fullname', 'email', 'address', 'phone', 'image', 'birthday', 'gender']));
+            $user->save();
+            return response()->json([
+                'code' => 'success',
+                'message' => 'Cập nhật thông tin người dùng thành công!',
+                'user' => $user->fresh()
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Đã xảy ra lỗi khi cập nhật thông tin người dùng!',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
 
@@ -474,6 +470,7 @@ class ClientUerController extends Controller
             'fullname' => $user->fullname,
             'email' => $user->email,
             'roles' => $roles,
+            'permissions' => $user->permission_slugs,
         ],
     ], 200);
 }

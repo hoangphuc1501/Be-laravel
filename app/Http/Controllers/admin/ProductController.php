@@ -16,6 +16,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Products::class);
         $perPage = $request->input('per_page', 10);
         $status = $request->input('status');
         $featured = $request->input('featured');
@@ -197,8 +198,8 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('Dữ liệu request:', $request->all());
-
+        // Log::info('Dữ liệu request:', $request->all());
+        $this->authorize('create', Products::class);
         // Kiểm tra dữ liệu đầu vào
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
@@ -312,7 +313,8 @@ class ProductController extends Controller
                     ]);
             }
         ])->where('deleted', false)->find($id);
-
+        // phân quyền
+        $this->authorize('view', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -417,6 +419,7 @@ class ProductController extends Controller
 
         // Tìm sản phẩm cần cập nhật
         $product = Products::find($id);
+        $this->authorize('update', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -534,6 +537,7 @@ class ProductController extends Controller
     public function destroy($id)
     {
         $product = Products::with('variants.images')->find($id);
+        $this->authorize('forceDelete', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -560,6 +564,7 @@ class ProductController extends Controller
     public function softDelete(string $id)
     {
         $product = Products::where('deleted', false)->find($id);
+        $this->authorize('delete', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -578,6 +583,7 @@ class ProductController extends Controller
     public function restore(string $id)
     {
         $product = Products::where('deleted', true)->find($id);
+        $this->authorize('restore', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -600,6 +606,7 @@ class ProductController extends Controller
         ]);
 
         $product = Products::find($id);
+        $this->authorize('update', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -625,6 +632,7 @@ class ProductController extends Controller
         ]);
 
         $product = Products::find($id);
+        $this->authorize('update', $product);
         if (!$product) {
             return response()->json([
                 'code' => 'error',
@@ -703,6 +711,8 @@ class ProductController extends Controller
             'data' => $products
         ]);
     }
+
+
 
 //thêm mới
 //     public function store(Request $request)

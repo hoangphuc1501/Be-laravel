@@ -9,54 +9,56 @@ use App\Http\Controllers\Controller;
 class SizeController extends Controller
 {
     public function index(Request $request)
-{
-    $perPage = $request->input('per_page', 10);
-    $status = $request->input('status');
-    $search = $request->input('search');
-    $sort = $request->input('sort');
+    {
+        // phân quyền
+        $this->authorize('viewAny', Size::class);
+        $perPage = $request->input('per_page', 10);
+        $status = $request->input('status');
+        $search = $request->input('search');
+        $sort = $request->input('sort');
 
-    $query = Size::select('id', 'name', 'status', 'position')
-        ->where('deleted', false);
+        $query = Size::select('id', 'name', 'status', 'position')
+            ->where('deleted', false);
 
-    // Lọc theo trạng thái
-    if ($status === 'active') {
-        $query->where('status', 1);
-    } elseif ($status === 'inactive') {
-        $query->where('status', 0);
+        // Lọc theo trạng thái
+        if ($status === 'active') {
+            $query->where('status', 1);
+        } elseif ($status === 'inactive') {
+            $query->where('status', 0);
+        }
+
+        // Tìm kiếm theo tên
+        if (!empty($search)) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        // Sắp xếp
+        switch ($sort) {
+            case 'position-asc':
+                $query->orderBy('position', 'asc');
+                break;
+            case 'position-desc':
+                $query->orderBy('position', 'desc');
+                break;
+            case 'title-asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'title-desc':
+                $query->orderBy('name', 'desc');
+                break;
+            default:
+                $query->orderBy('position', 'desc');
+                break;
+        }
+
+        $sizes = $query->paginate($perPage);
+
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách kích thước.',
+            'data' => $sizes
+        ], 200);
     }
-
-    // Tìm kiếm theo tên
-    if (!empty($search)) {
-        $query->where('name', 'like', '%' . $search . '%');
-    }
-
-    // Sắp xếp
-    switch ($sort) {
-        case 'position-asc':
-            $query->orderBy('position', 'asc');
-            break;
-        case 'position-desc':
-            $query->orderBy('position', 'desc');
-            break;
-        case 'title-asc':
-            $query->orderBy('name', 'asc');
-            break;
-        case 'title-desc':
-            $query->orderBy('name', 'desc');
-            break;
-        default:
-            $query->orderBy('position', 'desc');
-            break;
-    }
-
-    $sizes = $query->paginate($perPage);
-
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách kích thước.',
-        'data' => $sizes
-    ], 200);
-}
 
 
     /**
@@ -64,6 +66,8 @@ class SizeController extends Controller
      */
     public function store(Request $request)
     {
+        // phân quyền
+        $this->authorize('create', Size::class);
         $request->validate([
             'name' => 'required|string|max:255',
             'status' => 'nullable|integer|in:0,1',
@@ -93,6 +97,8 @@ class SizeController extends Controller
     public function show(string $id)
     {
         $size = Size::find($id);
+        // phân quyền
+        $this->authorize('view', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
@@ -112,6 +118,8 @@ class SizeController extends Controller
     public function update(Request $request, string $id)
     {
         $size = Size::find($id);
+        // phân quyền
+        $this->authorize('update', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
@@ -133,10 +141,10 @@ class SizeController extends Controller
             ]
         ));
 
-          // Nếu có thay đổi, mới lưu
-            if ($size->isDirty()) {
-                $size->save();
-            }
+        // Nếu có thay đổi, mới lưu
+        if ($size->isDirty()) {
+            $size->save();
+        }
 
         return response()->json([
             'code' => 'success',
@@ -151,6 +159,8 @@ class SizeController extends Controller
     public function destroy(string $id)
     {
         $size = Size::find($id);
+        // phân quyền
+        $this->authorize('forceDelete', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
@@ -169,16 +179,18 @@ class SizeController extends Controller
     public function softDelete(string $id)
     {
         $size = Size::where('deleted', false)->find($id);
+        // phân quyền
+        $this->authorize('delete', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
                 'message' => 'Kích thước không tồn tại.'
             ], 404);
         }
-    
+
         // Xóa mềm
         $size->update(['deleted' => true]);
-    
+
         return response()->json([
             'code' => 'success',
             'message' => 'Xóa kích thước thành công.',
@@ -187,8 +199,10 @@ class SizeController extends Controller
 
 
     public function restore(string $id)
-{
-    $size = Size::where('deleted', true)->find($id);
+    {
+        $size = Size::where('deleted', true)->find($id);
+        // phân quyền
+        $this->authorize('restore', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
@@ -196,17 +210,17 @@ class SizeController extends Controller
             ], 404);
         }
 
-    // Khôi phục danh mục
-    $size->update(['deleted' => false]);
+        // Khôi phục danh mục
+        $size->update(['deleted' => false]);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Khôi phục kích thước thành công.',
-    ], 200);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Khôi phục kích thước thành công.',
+        ], 200);
+    }
 
 
-public function listSize()
+    public function listSize()
     {
         // $perPage = $request->input('per_page', 10);
         $sizes = Size::select('id', 'name', 'status', 'position')
@@ -230,6 +244,8 @@ public function listSize()
         ]);
 
         $size = Size::find($id);
+        // phân quyền
+        $this->authorize('update', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
@@ -255,7 +271,8 @@ public function listSize()
         ]);
 
         $size = Size::where('deleted', false)->find($id);
-
+        // phân quyền
+        $this->authorize('update', $size);
         if (!$size) {
             return response()->json([
                 'code' => 'error',
@@ -275,18 +292,18 @@ public function listSize()
 
     // 
     public function TrashSize(Request $request)
-{
-    $perPage = $request->input('per_page', 10);
+    {
+        $perPage = $request->input('per_page', 10);
 
-    $sizes = Size::select('id', 'name', 'status', 'position')
-        ->where('deleted', true)
-        ->orderBy('position', 'desc')
-        ->paginate($perPage);
+        $sizes = Size::select('id', 'name', 'status', 'position')
+            ->where('deleted', true)
+            ->orderBy('position', 'desc')
+            ->paginate($perPage);
 
-    return response()->json([
-        'code' => 'success',
-        'message' => 'Danh sách kích thước.',
-        'data' => $sizes
-    ], 200);
-}
+        return response()->json([
+            'code' => 'success',
+            'message' => 'Danh sách kích thước.',
+            'data' => $sizes
+        ], 200);
+    }
 }
